@@ -7,9 +7,15 @@ import env from "./env";
 
 //setup
 const { LOGINID_BASE_URL, LOGINID_CLIENT_ID } = env;
-const loginid = new LoginID(LOGINID_BASE_URL, LOGINID_CLIENT_ID);
 
-const { registerBtn } = elements();
+const loginid = new LoginID(LOGINID_BASE_URL, LOGINID_CLIENT_ID);
+const {
+  accessTokenPre,
+  authenticateBtn,
+  registerBtn,
+  idTokenPre,
+  refreshTokenPre,
+} = elements();
 
 /*
  * Creates a FIDO2 credential on to the device.
@@ -62,6 +68,26 @@ registerBtn?.addEventListener("click", async () => {
     await cognito.confirmationCode(cognitoUser, code);
 
     alert("User fully registered: " + cognitoUser.getUsername());
+  } catch (e: any) {
+    alert("There has been an error: " + e.message);
+  }
+});
+
+authenticateBtn.addEventListener("click", async () => {
+  const { username } = getValues();
+
+  try {
+    const result = await cognito.initiateAuthFIDO2(username);
+
+    idTokenPre.innerText = JSON.stringify(result.getIdToken(), null, 2);
+    accessTokenPre.innerText = JSON.stringify(result.getAccessToken(), null, 2);
+    refreshTokenPre.innerText = JSON.stringify(
+      result.getRefreshToken(),
+      null,
+      2
+    );
+
+    console.log(result);
   } catch (e: any) {
     alert("There has been an error: " + e.message);
   }

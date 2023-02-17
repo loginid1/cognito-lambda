@@ -14,7 +14,6 @@ export const handler = async (event) => {
     const { jwt } = event.request?.validationData;
 
     //might need to remove username
-    console.log(jwt);
     const valid = await loginid.verifyToken(jwt, username);
 
     if (!valid) {
