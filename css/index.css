@@ -1,43 +1,11 @@
-body {
-  margin: 0;
+.centered {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  height: 100vh;
+  height: 100%;
 }
 
-.wrapper {
-  margin-bottom: 1em;
-  display: flex;
-  flex-direction: column;
-}
-
-@media screen and (min-width: 850px) {
-  .wrapper {
-    display: block;
-  }
-}
-
-button,
-input,
-select {
-  padding: 10px;
-}
-
-button {
-  cursor: pointer;
-}
-
-.link {
-  background: rgb(239, 239, 239);
-  padding: 10px;
-  border: 1px black solid;
-  text-decoration: none;
-  color: black;
-  font-size: 0.87em;
-}
-
-.link:hover {
-  background: rgb(228, 228, 228);
+html,
+body {
+  height: 100%;
 }

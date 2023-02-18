@@ -8,6 +8,7 @@ import {
   CognitoUserAttribute,
   CognitoUserPool,
   CognitoUserSession,
+  IAuthenticationCallback,
   IAuthenticationDetailsData,
   ICognitoUserData,
   ISignUpResult,
@@ -21,22 +22,23 @@ const {
 } = env;
 
 const loginid = new LoginID(LOGINID_BASE_URL, LOGINID_CLIENT_ID);
-const userPool = new CognitoUserPool({
+export const userPool = new CognitoUserPool({
   UserPoolId: COGNITO_USER_POOL_ID,
   ClientId: COGNITO_CLIENT_ID,
 });
 
 export const userSignup = (
   username: string,
-  attributes: CognitoUserAttribute[],
-  validations: CognitoUserAttribute[]
+  password: string,
+  attributes: CognitoUserAttribute[]
 ): Promise<ISignUpResult> => {
   return new Promise((res, rej) => {
     userPool.signUp(
       username,
-      randomPassword(),
+      //if password is set, it is password user, if not it is FIDO2
+      password || randomPassword(),
       attributes,
-      validations,
+      [],
       (err, result) => {
         if (err) {
           rej(err);
@@ -63,11 +65,14 @@ export const confirmationCode = (user: CognitoUser, code: string) => {
 };
 
 export const initiateAuthFIDO2 = (
-  username: string
+  username: string,
+  password: string,
+  type: string
 ): Promise<CognitoUserSession> => {
   return new Promise((res, rej) => {
     const authenticationData: IAuthenticationDetailsData = {
       Username: username,
+      Password: password,
     };
     const userData: ICognitoUserData = {
       Username: username,
@@ -77,16 +82,17 @@ export const initiateAuthFIDO2 = (
     const authenticationDetails = new AuthenticationDetails(authenticationData);
     const user = new CognitoUser(userData);
 
-    user.setAuthenticationFlowType("CUSTOM_AUTH");
-    user.initiateAuth(authenticationDetails, {
-      customChallenge: async function () {
-        const { username } = getValues();
-
+    const callbackObj: IAuthenticationCallback = {
+      customChallenge: async function (challengParams: any) {
+        console.log(challengParams);
         const { jwt, credential } = await loginid.authenticateWithFido2(
           username
         );
+
+        //TODO:validate jwt with local server
+
         user.sendCustomChallengeAnswer(
-          JSON.stringify({ credentialUUID: credential?.uuid, jwt }),
+          JSON.stringify({ credentialUUID: credential?.uuid }),
           this
         );
       },
@@ -98,6 +104,38 @@ export const initiateAuthFIDO2 = (
       onFailure: function (err) {
         rej(err);
       },
-    });
+    };
+
+    switch (type) {
+      case "FIDO2": {
+        user.setAuthenticationFlowType("CUSTOM_AUTH");
+        user.initiateAuth(authenticationDetails, callbackObj);
+        break;
+      }
+
+      case "PASSWORD": {
+        user.authenticateUser(authenticationDetails, callbackObj);
+        break;
+      }
+
+      //we want to change the defaulted customChallenge to register a user on LoginID instead
+      //since a user is already found on Cognito but not on LoginID
+      case "ADD-FIDO2": {
+        callbackObj.customChallenge = async () => {
+          const { jwt, credential } = await loginid.registerWithFido2(username);
+
+          //TODO:validate jwt with local server
+
+          user.sendCustomChallengeAnswer(
+            JSON.stringify({ credentialUUID: credential?.uuid }),
+            this!
+          );
+        };
+
+        user.setAuthenticationFlowType("CUSTOM_AUTH");
+        user.initiateAuth(authenticationDetails, callbackObj);
+        break;
+      }
+    }
   });
 };

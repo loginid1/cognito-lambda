@@ -8,7 +8,8 @@ export const handler = async (event) => {
     throw new Error("User does not exist");
   }
 
-  const { session } = request;
+  const { session, userAttributes } = request;
+  const loginidUserId = "";
 
   //support only FIDO2 for now
 

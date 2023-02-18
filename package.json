@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "parcel index.html",
+    "dev": "parcel ./views/register.pug ./views/home.pug",
     "start": "node app.js",
     "build": "parcel build index.html --public-url /"
   },
@@ -18,6 +18,7 @@
     "parcel": "^2.8.3"
   },
   "devDependencies": {
+    "@parcel/transformer-pug": "^2.8.3",
     "buffer": "^5.7.1"
   }
 }

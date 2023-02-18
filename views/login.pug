@@ -1,0 +1,25 @@
+extends template.pug
+
+block content
+	section
+		div(class="container h-100")
+			div(class="row justify-content-sm-center h-100")
+				div(class="col-xxl-4 col-xl-5 col-lg-5 col-md-7 col-sm-9")
+					div(class="card shadow-lg")
+						div(class="card-body p-5")
+							h1(class="fs-4 card-title fw-bold mb-4") Login
+							form(class="needs-validation")
+								div.mb-3
+									label(class="mb-2 text-muted" for="name") Username
+									input(id="username" type="text" class="form-control" name="name" value="" required autofocus)
+								div.mb-3
+									label(class="mb-2 text-muted" for="name") Password
+									input(id="password" type="password" class="form-control" name="password")
+								div(class="align-items-center d-flex mb-2")
+									button(type="submit" class="btn btn-primary w-100 ms-auto" data-type="AUTH_FIDO2") Login Passwordless
+								div(class="align-items-center d-flex")
+									button(type="submit" class="btn btn-primary w-100 ms-auto" data-type="AUTH_PASSWORD") Login With Password
+						div(class="card-footer py-3 border-0")
+							div.text-center
+								| Don't have an account? 
+								a.text-dark(href="./register.pug") Create One
