@@ -1,7 +1,7 @@
 import env from "./env";
 import LoginID from "@loginid/sdk";
 import { randomPassword } from "./random";
-import { getValues } from "./elements";
+import { base64ToBuffer, bufferToBase64 } from "./encoding";
 import {
   AuthenticationDetails,
   CognitoUser,
@@ -84,17 +84,34 @@ export const initiateAuthFIDO2 = (
 
     const callbackObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
-        console.log(challengParams);
-        const { jwt, credential } = await loginid.authenticateWithFido2(
-          username
-        );
+        const publicKey = JSON.parse(challengParams.public_key);
 
-        //TODO:validate jwt with local server
+        publicKey.challenge = base64ToBuffer(publicKey.challenge);
 
-        user.sendCustomChallengeAnswer(
-          JSON.stringify({ credentialUUID: credential?.uuid }),
-          this
-        );
+        if (publicKey.allowCredentials) {
+          for (const credential of publicKey.allowCredentials) {
+            credential.id = base64ToBuffer(credential.id);
+          }
+        }
+
+        const credential = (await navigator.credentials.get({
+          publicKey,
+        })) as PublicKeyCredential;
+
+        if (!credential) {
+          throw new Error("Failed to authenticate credential");
+        }
+
+        const response = credential.response as AuthenticatorAssertionResponse;
+
+        const assertion = {
+          credential_id: bufferToBase64(credential.rawId),
+          client_data: bufferToBase64(response.clientDataJSON),
+          authenticator_data: bufferToBase64(response.authenticatorData),
+          signature: bufferToBase64(response.signature),
+        };
+
+        user.sendCustomChallengeAnswer(JSON.stringify({ assertion }), this);
       },
 
       onSuccess: function (result) {
