@@ -1,5 +1,4 @@
 import env from "./env";
-import LoginID from "@loginid/sdk";
 import { randomPassword } from "./random";
 import { base64ToBuffer, bufferToBase64 } from "./encoding";
 import {
@@ -14,14 +13,8 @@ import {
   ISignUpResult,
 } from "amazon-cognito-identity-js";
 
-const {
-  COGNITO_CLIENT_ID,
-  COGNITO_USER_POOL_ID,
-  LOGINID_BASE_URL,
-  LOGINID_CLIENT_ID,
-} = env;
+const { COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID } = env;
 
-const loginid = new LoginID(LOGINID_BASE_URL, LOGINID_CLIENT_ID);
 export const userPool = new CognitoUserPool({
   UserPoolId: COGNITO_USER_POOL_ID,
   ClientId: COGNITO_CLIENT_ID,
@@ -64,7 +57,7 @@ export const confirmationCode = (user: CognitoUser, code: string) => {
   });
 };
 
-export const initiateAuthFIDO2 = (
+export const initiateFIDO2 = (
   username: string,
   password: string,
   type: string
@@ -138,13 +131,38 @@ export const initiateAuthFIDO2 = (
       //we want to change the defaulted customChallenge to register a user on LoginID instead
       //since a user is already found on Cognito but not on LoginID
       case "ADD-FIDO2": {
-        callbackObj.customChallenge = async () => {
-          const { jwt, credential } = await loginid.registerWithFido2(username);
+        callbackObj.customChallenge = async (challengParams: any) => {
+          debugger;
+          const publicKey = JSON.parse(challengParams.public_key);
 
-          //TODO:validate jwt with local server
+          publicKey.challenge = base64ToBuffer(publicKey.challenge);
+          publicKey.user.id = base64ToBuffer(publicKey.user.id);
+
+          if (publicKey.excludeCredentials) {
+            for (const credential of publicKey.allowCredentials) {
+              credential.id = base64ToBuffer(credential.id);
+            }
+          }
+
+          const credential = (await navigator.credentials.create({
+            publicKey,
+          })) as PublicKeyCredential;
+
+          if (!credential) {
+            throw new Error("Failed to authenticate credential");
+          }
+
+          const response =
+            credential.response as AuthenticatorAttestationResponse;
+
+          const attestation = {
+            credential_id: bufferToBase64(credential.rawId),
+            client_data: bufferToBase64(response.clientDataJSON),
+            attestation_data: bufferToBase64(response.attestationObject),
+          };
 
           user.sendCustomChallengeAnswer(
-            JSON.stringify({ credentialUUID: credential?.uuid }),
+            JSON.stringify({ attestation }),
             this!
           );
         };

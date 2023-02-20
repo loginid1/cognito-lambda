@@ -80,12 +80,14 @@ form?.addEventListener("submit", async (event) => {
             Name: "custom:loginidUserId",
             Value: loginidUser.id,
           });
+          /*
           const dataCredential = new CognitoUserAttribute({
             Name: "custom:credentialUUIDs",
             Value: credential!.uuid,
           });
+		  */
           attributeList.push(dataLoginIdUserId);
-          attributeList.push(dataCredential);
+          //attributeList.push(dataCredential);
 
           //TODO:validate jwt with local server
         }
@@ -98,7 +100,8 @@ form?.addEventListener("submit", async (event) => {
         );
 
         //cognito email verification
-        const code = prompt("Please enter confirmation code:") || "";
+        const code =
+          prompt("Please enter confirmation code:", "ENTER HERE") || "";
 
         await cognito.confirmationCode(cognitoUser, code);
 
@@ -115,11 +118,7 @@ form?.addEventListener("submit", async (event) => {
     //AUTHENTICATION
     case "AUTH": {
       try {
-        const result = await cognito.initiateAuthFIDO2(
-          username,
-          password,
-          flow
-        );
+        const result = await cognito.initiateFIDO2(username, password, flow);
 
         if (!result.isValid()) {
           throw new Error("Invalid authentication");

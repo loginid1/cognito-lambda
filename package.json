@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "parcel ./views/register.pug ./views/home.pug",
+    "dev": "parcel ./views/index.pug ./views/home.pug",
     "start": "node app.js",
     "build": "parcel build index.html --public-url /"
   },
