@@ -1,4 +1,5 @@
 import json
+import boto3
 
 from loginid import LoginID
 from os import environ
@@ -9,6 +10,21 @@ CLIENT_ID = environ.get("LOGINID_CLIENT_ID") or ""
 
 lid = LoginID(CLIENT_ID, PRIVATE_KEY, BASE_URL)
 
+aws = client = boto3.client("cognito-idp")
+
+
+class NotFound(Exception):
+    """
+    Raises not found error
+    """
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+    def __str__(self) -> str:
+        if not self.message:
+            return "Not found"
+        return self.message
+
 
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
@@ -16,8 +32,6 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     try:
         username = event["userName"]
-        user_attributes = request["userAttributes"]
-        credential_uuids = user_attributes.get("custom:credentialUUIDs", "")
 
         # from private challenge
         private_challenge_params = request["privateChallengeParameters"]
@@ -25,16 +39,44 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         # answer
         challenge_answer = json.loads(request["challengeAnswer"])
-        assertion = challenge_answer["assertion"]
+        attestation = challenge_answer.get("attestation")
+        assertion = challenge_answer.get("assertion")
 
-        assertion["challenge"] = public_key["challenge"]
+        # loginid verification
+        loginid_res = {}
 
-        res = lid.authenticate_fido2_complete(username, assertion)
-        print(res)
+        if attestation:
+            attestation["credential_uuid"] = public_key["credential_uuid"]
+            attestation["challenge"] = public_key["challenge"]
+            loginid_res = lid.register_fido2_complete(username, attestation)
+        elif assertion:
+            assertion["challenge"] = public_key["challenge"]
+            loginid_res = lid.authenticate_fido2_complete(username, assertion)
+        else:
+            raise NotFound("Attestation or assertion not found")
 
-        if not res["is_authenticated"]:
+        print(loginid_res)
+
+        if not loginid_res["is_authenticated"]:
             response["answerCorrect"] = False
             return event
+
+        # if everything is okay with loginid we add new user attributes
+        # if fido2 credential was added
+        if attestation:
+            user_pool_id = event["userPoolId"]
+            loginid_user_id = loginid_res["user"]["id"]
+            loginid_user_id_attribute = {
+                "Name": "custom:loginidUserId",
+                "Value": loginid_user_id
+            }
+
+            # will throw exception if failed
+            aws.admin_update_user_attributes(
+                UserPoolId=user_pool_id,
+                Username=username,
+                UserAttributes=[loginid_user_id_attribute]
+            )
 
         response["answerCorrect"] = True
 
