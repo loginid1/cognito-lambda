@@ -32,7 +32,7 @@ class UserResource(Resource):
         access_token = payload.get("access_token", "")
         response_data = {"message": "Unauthorized"}
 
-        if not access_token:
+        if not id_token or not access_token:
             return json_response(response_data, HTTPStatus.UNAUTHORIZED)
 
         try:
@@ -43,7 +43,7 @@ class UserResource(Resource):
 
         username = jwt_payload["cognito:username"]
         TOKEN_STORE[username] = {
-            "id_token": id_token,
+            "id_token_payload": jwt_payload,
             "access_token": access_token,
         }
 

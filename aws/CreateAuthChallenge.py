@@ -13,20 +13,14 @@ lid = LoginID(CLIENT_ID, PRIVATE_KEY, BASE_URL)
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
 
-    request, response = event["request"], event["response"]
+    response = event["response"]
     username = event["userName"]
-    user_attributes = request["userAttributes"]
-    loginid_user_id = user_attributes.get("custom:loginidUserId", "")
 
     init_res = {}
     public_key = {}
 
-    if not loginid_user_id:
-        init_res = lid.register_fido2_init(username)
-        public_key = json.dumps(init_res["attestation_payload"])
-    else:
-        init_res = lid.authenticate_fido2_init(username)
-        public_key = json.dumps(init_res["assertion_payload"])
+    init_res = lid.authenticate_fido2_init(username)
+    public_key = json.dumps(init_res["assertion_payload"])
 
     # can probably remove this
     response["privateChallengeParameters"] = {

@@ -127,49 +127,6 @@ export const initiateFIDO2 = (
         user.authenticateUser(authenticationDetails, callbackObj);
         break;
       }
-
-      //we want to change the defaulted customChallenge to register a user on LoginID instead
-      //since a user is already found on Cognito but not on LoginID
-      case "ADD-FIDO2": {
-        callbackObj.customChallenge = async (challengParams: any) => {
-          const publicKey = JSON.parse(challengParams.public_key);
-
-          publicKey.challenge = base64ToBuffer(publicKey.challenge);
-          publicKey.user.id = base64ToBuffer(publicKey.user.id);
-
-          if (publicKey.excludeCredentials) {
-            for (const credential of publicKey.allowCredentials) {
-              credential.id = base64ToBuffer(credential.id);
-            }
-          }
-
-          const credential = (await navigator.credentials.create({
-            publicKey,
-          })) as PublicKeyCredential;
-
-          if (!credential) {
-            throw new Error("Failed to authenticate credential");
-          }
-
-          const response =
-            credential.response as AuthenticatorAttestationResponse;
-
-          const attestation = {
-            credential_id: bufferToBase64(credential.rawId),
-            client_data: bufferToBase64(response.clientDataJSON),
-            attestation_data: bufferToBase64(response.attestationObject),
-          };
-
-          user.sendCustomChallengeAnswer(
-            JSON.stringify({ attestation }),
-            this!
-          );
-        };
-
-        user.setAuthenticationFlowType("CUSTOM_AUTH");
-        user.initiateAuth(authenticationDetails, callbackObj);
-        break;
-      }
     }
   });
 };

@@ -39,44 +39,22 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         # answer
         challenge_answer = json.loads(request["challengeAnswer"])
-        attestation = challenge_answer.get("attestation")
         assertion = challenge_answer.get("assertion")
 
         # loginid verification
         loginid_res = {}
 
-        if attestation:
-            attestation["credential_uuid"] = public_key["credential_uuid"]
-            attestation["challenge"] = public_key["challenge"]
-            loginid_res = lid.register_fido2_complete(username, attestation)
-        elif assertion:
-            assertion["challenge"] = public_key["challenge"]
-            loginid_res = lid.authenticate_fido2_complete(username, assertion)
-        else:
-            raise NotFound("Attestation or assertion not found")
+        if not assertion:
+            raise NotFound("Assertion not found")
+
+        assertion["challenge"] = public_key["challenge"]
+        loginid_res = lid.authenticate_fido2_complete(username, assertion)
 
         print(loginid_res)
 
         if not loginid_res["is_authenticated"]:
             response["answerCorrect"] = False
             return event
-
-        # if everything is okay with loginid we add new user attributes
-        # if fido2 credential was added
-        if attestation:
-            user_pool_id = event["userPoolId"]
-            loginid_user_id = loginid_res["user"]["id"]
-            loginid_user_id_attribute = {
-                "Name": "custom:loginidUserId",
-                "Value": loginid_user_id
-            }
-
-            # will throw exception if failed
-            aws.admin_update_user_attributes(
-                UserPoolId=user_pool_id,
-                Username=username,
-                UserAttributes=[loginid_user_id_attribute]
-            )
 
         response["answerCorrect"] = True
 

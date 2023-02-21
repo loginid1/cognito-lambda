@@ -1,5 +1,9 @@
 import { getCSRFCookie } from "./cookies";
 
+interface FetchOptions {
+  includeCSRF?: boolean;
+}
+
 export const get = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, {
     method: "GET",
@@ -13,10 +17,20 @@ export const get = async <T>(url: string): Promise<T> => {
   return await response.json();
 };
 
-export const post = async <T>(url: string, body: any): Promise<T> => {
+export const post = async <T>(
+  url: string,
+  body: any = {},
+  options: FetchOptions = {}
+): Promise<T> => {
+  let headers: any = { "Content-Type": "application/json" };
+
+  if (options.includeCSRF) {
+    headers["X-CSRF-TOKEN"] = getCSRFCookie();
+  }
+
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 

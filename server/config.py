@@ -11,8 +11,12 @@ PRIVATE_KEY = re.sub(
     r"\n",
     os.getenv("PRIVATE_KEY") or ""
 )
+
 COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID") or ""
 COGNITO_CLIENT_ID = os.getenv("COGNITO_CLIENT_ID") or ""
+COGNITO_REGION_NAME = os.getenv("COGNITO_REGION_NAME") or ""
+COGNITO_ACCESS_KEY_ID = os.getenv("COGNITO_ACCESS_KEY_ID") or ""
+COGNITO_SECRET_ACCESS_KEY = os.getenv("COGNITO_SECRET_ACCESS_KEY") or ""
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DIST_DIR = os.path.join(ROOT_DIR, "..", "dist")

@@ -1,9 +1,15 @@
 import LoginID from "@loginid/sdk";
 import * as cognito from "./cognito";
+import { base64ToBuffer, bufferToBase64 } from "./encoding";
 import { elements, getValues } from "./elements";
 import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 import { authUser, logoutUser } from "./user-api";
-import { generateServiceToken, verifyJWT } from "./loginid-api";
+import {
+  fido2CreateInit,
+  fido2CreateComplete,
+  generateServiceToken,
+  verifyJWT,
+} from "./loginid-api";
 
 import env from "./env";
 
@@ -115,6 +121,48 @@ form?.addEventListener("submit", async (event) => {
       }
 
       break;
+    }
+
+    //ADDING FIDO2
+    case "ADD": {
+      try {
+        const publicKey = await fido2CreateInit();
+        const { challenge } = publicKey;
+
+        publicKey.challenge = base64ToBuffer(publicKey.challenge);
+        publicKey.user.id = base64ToBuffer(publicKey.user.id);
+
+        if (publicKey.excludeCredentials) {
+          for (const credential of publicKey.excludeCredentials) {
+            credential.id = base64ToBuffer(credential.id);
+          }
+        }
+
+        const credential = (await navigator.credentials.create({
+          publicKey,
+        })) as PublicKeyCredential;
+
+        if (!credential) {
+          throw new Error("Failed to authenticate credential");
+        }
+
+        const response =
+          credential.response as AuthenticatorAttestationResponse;
+
+        const attestation = {
+          credential_uuid: publicKey.credential_uuid,
+          challenge: challenge,
+          credential_id: bufferToBase64(credential.rawId),
+          client_data: bufferToBase64(response.clientDataJSON),
+          attestation_data: bufferToBase64(response.attestationObject),
+        };
+
+        await fido2CreateComplete(attestation);
+
+        alert("Sucessfully created FIDO2 credential!");
+      } catch (e: any) {
+        alert("There has been an error: " + e.message);
+      }
     }
   }
 });
