@@ -2,7 +2,8 @@ import LoginID from "@loginid/sdk";
 import * as cognito from "./cognito";
 import { elements, getValues } from "./elements";
 import { CognitoUserAttribute } from "amazon-cognito-identity-js";
-import { authUser, getUser, logoutUser } from "./user-api";
+import { authUser, logoutUser } from "./user-api";
+import { generateServiceToken, verifyJWT } from "./loginid-api";
 
 import env from "./env";
 
@@ -49,17 +50,27 @@ form?.addEventListener("submit", async (event) => {
 
         if (flow === "FIDO2") {
           //loginid signup
-          const { jwt, user: loginidUser } = await loginid.registerWithFido2(
-            username
+          const serviceToken = await generateServiceToken(
+            username,
+            "auth.register"
           );
+
+          const { jwt, user: loginidUser } = await loginid.registerWithFido2(
+            username,
+            { authorization_token: serviceToken }
+          );
+
+          const jwtValid = await verifyJWT(username, jwt || "");
+
+          if (!jwtValid) {
+            throw new Error("LoginID JWT verification failed");
+          }
 
           const dataLoginIdUserId = new CognitoUserAttribute({
             Name: "custom:loginidUserId",
             Value: loginidUser.id,
           });
           attributeList.push(dataLoginIdUserId);
-
-          //TODO:validate jwt with local server
         }
 
         //cognito signup

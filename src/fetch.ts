@@ -6,11 +6,11 @@ export const get = async <T>(url: string): Promise<T> => {
   });
 
   if (!response.ok) {
-    const data = response.json();
+    const data = await response.json();
     throw data;
   }
 
-  return response.json();
+  return await response.json();
 };
 
 export const post = async <T>(url: string, body: any): Promise<T> => {
@@ -21,11 +21,11 @@ export const post = async <T>(url: string, body: any): Promise<T> => {
   });
 
   if (!response.ok) {
-    const data = response.json();
+    const data = await response.json();
     throw data;
   }
 
-  return response.json();
+  return await response.json();
 };
 
 export const put = async <T>(url: string): Promise<T | null> => {
@@ -35,7 +35,7 @@ export const put = async <T>(url: string): Promise<T | null> => {
   });
 
   if (!response.ok) {
-    const data = response.json();
+    const data = await response.json();
     throw data;
   }
 
@@ -43,5 +43,5 @@ export const put = async <T>(url: string): Promise<T | null> => {
     return null;
   }
 
-  return response.json();
+  return await response.json();
 };
