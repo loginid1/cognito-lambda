@@ -5,6 +5,8 @@ from server.api.users import UserResource
 from server.api.logout import LogoutResource
 from server.api.pages import pages_blueprint
 from server.api.loginid import loginid_bluebrint
+import server.setup
+
 
 
 def create_app() -> Flask:

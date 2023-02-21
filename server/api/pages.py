@@ -23,3 +23,8 @@ def login():
 @pages_blueprint.route("/home", methods=["GET"])
 def home():
     return send_from_directory(DIST_DIR, "home.html")
+
+
+@pages_blueprint.route("/<path:path>", methods=["GET"])
+def send_static(path):
+    return send_from_directory(DIST_DIR, path)

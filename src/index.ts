@@ -23,11 +23,6 @@ form?.addEventListener("submit", async (event) => {
   let { email, password, username } = getValues();
   const type = event.submitter?.dataset.type;
 
-  //if username is empty it may mean that user is already authenticated
-  //we can try to get the username from the token
-  if (!username) {
-  }
-
   event.preventDefault();
 
   if (!type) {
@@ -87,8 +82,10 @@ form?.addEventListener("submit", async (event) => {
         );
 
         //cognito email verification
-        const code =
-          prompt("Please enter confirmation code:", "ENTER HERE") || "";
+        let code = "";
+        while (code === "") {
+          code = prompt("Please enter confirmation code:") || "";
+        }
 
         await cognito.confirmationCode(cognitoUser, code);
 
@@ -143,7 +140,7 @@ form?.addEventListener("submit", async (event) => {
         })) as PublicKeyCredential;
 
         if (!credential) {
-          throw new Error("Failed to authenticate credential");
+          throw new Error("Failed to create credential");
         }
 
         const response =
