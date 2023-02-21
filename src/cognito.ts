@@ -132,7 +132,6 @@ export const initiateFIDO2 = (
       //since a user is already found on Cognito but not on LoginID
       case "ADD-FIDO2": {
         callbackObj.customChallenge = async (challengParams: any) => {
-          debugger;
           const publicKey = JSON.parse(challengParams.public_key);
 
           publicKey.challenge = base64ToBuffer(publicKey.challenge);

@@ -1,5 +1,8 @@
 extends template.pug
 
+block scripts
+	script(src="../src/authenticated.ts" type="module")
+
 block content
 	section
 		div(class="container h-100")

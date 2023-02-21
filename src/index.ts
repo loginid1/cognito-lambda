@@ -2,7 +2,7 @@ import LoginID from "@loginid/sdk";
 import * as cognito from "./cognito";
 import { elements, getValues } from "./elements";
 import { CognitoUserAttribute } from "amazon-cognito-identity-js";
-import { clearToken, getTokenParsed, storeToken, validToken } from "./auth";
+import { authUser, getUser, logoutUser } from "./user-api";
 
 import env from "./env";
 
@@ -10,26 +10,7 @@ import env from "./env";
 const { LOGINID_BASE_URL, LOGINID_CLIENT_ID } = env;
 
 const loginid = new LoginID(LOGINID_BASE_URL, LOGINID_CLIENT_ID);
-const { form, header } = elements();
-
-//token authentication stuff
-window.addEventListener("DOMContentLoaded", () => {
-  const { pathname } = window.location;
-  const isTokenValid = validToken();
-
-  if (
-    (pathname.startsWith("/register") || pathname.startsWith("/login")) &&
-    isTokenValid
-  ) {
-    window.location.replace("home.html");
-  } else if (pathname.startsWith("/home") && !isTokenValid) {
-    window.location.replace("login.html");
-  }
-
-  if (!validToken()) return;
-  const token = getTokenParsed();
-  header.textContent += token.payload["cognito:username"];
-});
+const { form } = elements();
 
 form?.addEventListener("submit", async (event) => {
   let { email, password, username } = getValues();
@@ -38,8 +19,6 @@ form?.addEventListener("submit", async (event) => {
   //if username is empty it may mean that user is already authenticated
   //we can try to get the username from the token
   if (!username) {
-    const token = getTokenParsed();
-    username = token.payload["cognito:username"];
   }
 
   event.preventDefault();
@@ -52,7 +31,7 @@ form?.addEventListener("submit", async (event) => {
 
   //LOGOUT
   if (flow === "LOGOUT") {
-    clearToken();
+    await logoutUser();
     window.location.replace("login.html");
   }
 
@@ -70,24 +49,15 @@ form?.addEventListener("submit", async (event) => {
 
         if (flow === "FIDO2") {
           //loginid signup
-          const {
-            credential,
-            jwt,
-            user: loginidUser,
-          } = await loginid.registerWithFido2(username);
+          const { jwt, user: loginidUser } = await loginid.registerWithFido2(
+            username
+          );
 
           const dataLoginIdUserId = new CognitoUserAttribute({
             Name: "custom:loginidUserId",
             Value: loginidUser.id,
           });
-          /*
-          const dataCredential = new CognitoUserAttribute({
-            Name: "custom:credentialUUIDs",
-            Value: credential!.uuid,
-          });
-		  */
           attributeList.push(dataLoginIdUserId);
-          //attributeList.push(dataCredential);
 
           //TODO:validate jwt with local server
         }
@@ -124,7 +94,10 @@ form?.addEventListener("submit", async (event) => {
           throw new Error("Invalid authentication");
         }
 
-        storeToken(result.getIdToken());
+        const idToken = result.getIdToken().getJwtToken();
+        const accessToken = result.getAccessToken().getJwtToken();
+
+        await authUser(idToken, accessToken);
         window.location.replace("home.html");
       } catch (e: any) {
         alert("There has been an error: " + e.message);
