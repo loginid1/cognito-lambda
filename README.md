@@ -28,6 +28,7 @@ cd loginid-cognito-lambda
 ## LoginID Set-Up
 
 - coming soon
+- coming soon
 
 ## Cognito Set-Up
 
