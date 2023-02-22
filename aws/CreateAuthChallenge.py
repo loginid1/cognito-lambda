@@ -1,11 +1,16 @@
 import json
+import re
 
 from loginid import LoginID
 from os import environ
 
 BASE_URL = environ.get("LOGINID_BASE_URL") or ""
-PRIVATE_KEY = environ.get("LOGINID_PRIVATE_KEY") or ""
 CLIENT_ID = environ.get("LOGINID_CLIENT_ID") or ""
+PRIVATE_KEY = re.sub(
+    r"\\n",
+    r"\n",
+    environ.get("PRIVATE_KEY") or ""
+)
 
 lid = LoginID(CLIENT_ID, PRIVATE_KEY, BASE_URL)
 

@@ -1,11 +1,9 @@
 from flask import make_response, request
 from flask_restful import Resource
 from http import HTTPStatus
-from datetime import datetime, timedelta
-from server.helpers.api import json_response
+from server.helpers.api import create_session_token, json_response
 from server.external.cognito import Cognito
 from flask_jwt_extended import (
-    create_access_token,
     set_access_cookies,
     get_jwt_identity,
     jwt_required
@@ -13,16 +11,14 @@ from flask_jwt_extended import (
 
 cognito_api = Cognito()
 
-# in memeory version instead of DB
-TOKEN_STORE = {}
-
 
 class UserResource(Resource):
     @jwt_required()
     def get(self):
-        username = get_jwt_identity()
-        data = {"username": username}
-        return json_response(data, HTTPStatus.OK)
+        data = get_jwt_identity()
+        username = data["username"]
+        response_data = {"username": username}
+        return json_response(response_data, HTTPStatus.OK)
 
 
     def post(self):
@@ -41,18 +37,7 @@ class UserResource(Resource):
             print(e)
             return json_response(response_data, HTTPStatus.UNAUTHORIZED)
 
-        username = jwt_payload["cognito:username"]
-        TOKEN_STORE[username] = {
-            "id_token_payload": jwt_payload,
-            "access_token": access_token,
-        }
-
-        # session token
-        exp = datetime.fromtimestamp(jwt_payload["exp"])
-        time_diff = exp - datetime.now()
-        exp_timedelta = timedelta(seconds=time_diff.total_seconds())
-
-        session_token = create_access_token(username, expires_delta=exp_timedelta)
+        session_token = create_session_token(jwt_payload, access_token)
 
         response_data = {"status": "OK"}
         response = make_response(response_data)
