@@ -1,4 +1,4 @@
-import { post } from "./fetch";
+import { post, del } from "./fetch";
 
 type Scope = "auth.register";
 
@@ -44,4 +44,8 @@ export const fido2CreateComplete = async (attestationPayload: any) => {
     { includeCSRF: true }
   );
   return attestationComplete;
+};
+
+export const deleteUser = async (username: string) => {
+  await del(BASE_URL + "/users", { username });
 };

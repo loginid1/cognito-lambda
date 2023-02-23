@@ -59,3 +59,18 @@ export const put = async <T>(url: string): Promise<T | null> => {
 
   return await response.json();
 };
+
+export const del = async (url: string, body: any = {}): Promise<null> => {
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw data;
+  }
+
+  return null;
+};

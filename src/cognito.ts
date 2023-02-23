@@ -57,7 +57,7 @@ export const confirmationCode = (user: CognitoUser, code: string) => {
   });
 };
 
-export const initiateFIDO2 = (
+export const authenticate = (
   username: string,
   password: string,
   type: string

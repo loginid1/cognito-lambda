@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, Response, jsonify, message_flashed
 from http import HTTPStatus
 from loginid import LoginIdManagement
 from server.helpers.api import default_json
 from flask_jwt_extended import get_jwt_identity, jwt_required
 import boto3
+from botocore import exceptions
 
 from server.config import (
     COGNITO_ACCESS_KEY_ID,
@@ -47,6 +48,26 @@ def verify_jwt():
     except Exception as e:
         print(e)
         return jsonify(message="Verification failed"), HTTPStatus.BAD_REQUEST
+
+
+@loginid_bluebrint.route("/users", methods=["DELETE"])
+def delete_user():
+    username = default_json("username")
+
+    try:
+        aws_cognito.admin_get_user(Username=username)
+        return jsonify(message="User found on cognito cannot delete user"), HTTPStatus.BAD_REQUEST
+    except exceptions.ClientError as e:
+        # if user is not found on cognito then it is safe to delete user on loginid
+        if e.response["Error"]["Code"] == "UserNotFoundException":
+            lid.delete_by_username(str(username))
+            response = Response()
+            response.status_code = HTTPStatus.NO_CONTENT
+            return response
+        raise e
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
 
 
 '''

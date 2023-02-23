@@ -2,8 +2,8 @@ import LoginID from "@loginid/sdk";
 import * as cognito from "./cognito";
 import { base64ToBuffer, bufferToBase64 } from "./encoding";
 import { elements, getValues } from "./elements";
-import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 import { authUser, logoutUser } from "./user-api";
+import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 import {
   fido2CreateInit,
   fido2CreateComplete,
@@ -48,6 +48,15 @@ form?.addEventListener("submit", async (event) => {
           Value: email,
         });
         attributeList.push(dataEmail);
+
+        //minor password logic
+        if (flow === "FIDO2") {
+          password = "";
+        } else if (flow === "PASSWORD") {
+          if (password === "") {
+            throw new Error("Password not entered");
+          }
+        }
 
         if (flow === "FIDO2") {
           //loginid signup
@@ -102,7 +111,7 @@ form?.addEventListener("submit", async (event) => {
     //AUTHENTICATION
     case "AUTH": {
       try {
-        const result = await cognito.initiateFIDO2(username, password, flow);
+        const result = await cognito.authenticate(username, password, flow);
 
         if (!result.isValid()) {
           throw new Error("Invalid authentication");
