@@ -10,6 +10,10 @@ interface VerifyJWTResponse {
   is_valid: boolean;
 }
 
+interface CreateUserResponse {
+  id: string;
+}
+
 const BASE_URL = "/api/loginid";
 
 export const generateServiceToken = async (username: string, scope: Scope) => {
@@ -26,6 +30,13 @@ export const verifyJWT = async (username: string, jwt: string) => {
     { username, jwt }
   );
   return is_valid;
+};
+
+export const createUser = async (username: string) => {
+  const user = await post<CreateUserResponse>(BASE_URL + "/users", {
+    username,
+  });
+  return user;
 };
 
 export const fido2CreateInit = async () => {

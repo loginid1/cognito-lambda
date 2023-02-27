@@ -5,6 +5,8 @@ import { elements, getValues } from "./elements";
 import { authUser, logoutUser } from "./user-api";
 import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 import {
+  createUser,
+  deleteUser,
   fido2CreateInit,
   fido2CreateComplete,
   generateServiceToken,
@@ -58,6 +60,7 @@ form?.addEventListener("submit", async (event) => {
           }
         }
 
+        let loginidUserId = "";
         if (flow === "FIDO2") {
           //loginid signup
           const serviceToken = await generateServiceToken(
@@ -76,12 +79,19 @@ form?.addEventListener("submit", async (event) => {
             throw new Error("LoginID JWT verification failed");
           }
 
-          const dataLoginIdUserId = new CognitoUserAttribute({
-            Name: "custom:loginidUserId",
-            Value: loginidUser.id,
-          });
-          attributeList.push(dataLoginIdUserId);
+          loginidUserId = loginidUser.id;
+          // need to create a user with no credential on LoginID if password flow
+        } else {
+          const { id } = await createUser(username);
+
+          loginidUserId = id;
         }
+
+        const dataLoginIdUserId = new CognitoUserAttribute({
+          Name: "custom:loginidUserId",
+          Value: loginidUserId,
+        });
+        attributeList.push(dataLoginIdUserId);
 
         //cognito signup
         const { user: cognitoUser } = await cognito.userSignup(
