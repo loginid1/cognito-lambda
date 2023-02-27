@@ -1,6 +1,7 @@
-from flask import Blueprint, Response, jsonify, message_flashed
+from flask import Blueprint, Response, jsonify
 from http import HTTPStatus
 from loginid import LoginIdManagement
+from loginid.core import LoginIDError
 from server.helpers.api import default_json
 from flask_jwt_extended import get_jwt_identity, jwt_required
 import boto3
@@ -48,6 +49,21 @@ def verify_jwt():
     except Exception as e:
         print(e)
         return jsonify(message="Verification failed"), HTTPStatus.BAD_REQUEST
+
+
+@loginid_bluebrint.route("/users", methods=["POST"])
+def create_user():
+    username, = default_json("username")
+
+    try:
+        response = lid.add_user_without_credentials(str(username))
+        return response, HTTPStatus.CREATED
+    except LoginIDError as e:
+        print(e)
+        return jsonify(message=e.message), HTTPStatus.BAD_REQUEST
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
 
 
 @loginid_bluebrint.route("/users", methods=["DELETE"])
