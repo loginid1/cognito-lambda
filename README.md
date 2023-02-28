@@ -55,7 +55,39 @@ From here you should have the following needed values:
 
 ## Cognito Set-Up
 
-- coming soon
+The `./aws/Template.yaml` file contains descriptions of the necessary AWS services. You can use it as a reference to manually set up the services. Alternatively, you can utilize the `Template.yaml` file with [CloudFormation](https://aws.amazon.com/cloudformation/resources/templates/), which will create the majority of the required service configurations automatically. If you opt to use `CloudFormation`, it may be advisable to exclude the `Layers` property until you are able to upload your own layer for the LoginID SDK dependencies.
+
+We will further elaborate on certain crucial aspects of the setup process below.
+
+### Cognito User Pool
+
+- Make sure that email validation is enabled.
+- Make a custom attribute `custom:loginidUserId`.
+- Configured lambda triggers will need to be created and enabled later on for `DefineAuthChallenge`, `CreateAuthChallenge`, and `VerifyAuthChallengeResponse`.
+
+### Cognito User Pool Client
+
+A client will need to be created.
+
+- Make sure that the following Properties are readable and writeable: `email`, `name`, `custom:loginidUserId`.
+
+### Authentication Lambdas
+
+It's worth noting that much of this demo is based on the approach outlined in this [AWS blog post](https://aws.amazon.com/blogs/security/how-to-implement-password-less-authentication-with-amazon-cognito-and-webauthn/). Although this demo is similar to the post, it leverages LoginID's API to handle the FIDO2 credential storage and verification process. You can refer to the blog post and this [documentation](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#amazon-cognito-user-pools-custom-authentication-flow) to gain a better understanding of how the custom authentication Lambdas operate.
+
+For the Lambdas in this demo, I opted to use Python. Please be aware that the `CreateAuthChallenge` and `VerifyAuthChallenge` Lambdas require a `Layer` that includes the LoginID SDK as a dependency. If you choose to use the provided Lambda code in `./aws/`, ensure that the `Layer` is generated in a Linux environment. This is critical because one of the LoginID SDK dependencies relies on the underlying platform. If there is a mismatch, the Lambdas will not function correctly and will throw an error.
+
+It is also important to note that the CreateAuthChallenge and VerifyAuthChallenge also require environment variables. These are:
+
+- LOGINID_BASE_URL
+- LOGINID_CLIENT_ID
+- PRIVATE_KEY
+
+Obtaining these variables are explained [above](#loginid-set-up).
+
+### IAM Privileges
+
+This demo uses a combination of `amazon-cognito-identity-js` and a backend client (`boto-3`) to leverage the cognito APIs.
 
 ## Environment Variables
 
