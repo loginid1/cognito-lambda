@@ -19,7 +19,6 @@ def default_json(*args):
 def create_session_token(id_token_payload: dict, access_token: str) -> str:
     # session token time
     username = id_token_payload["cognito:username"]
-    loginid_user_id = id_token_payload["custom:loginidUserId"]
 
     exp = datetime.fromtimestamp(id_token_payload["exp"])
     time_diff = exp - datetime.now()
@@ -29,7 +28,6 @@ def create_session_token(id_token_payload: dict, access_token: str) -> str:
     # probably best to store it in a DB
     user_data = {
         "username": username,
-        "loginid_user_id": loginid_user_id,
         "access_token": access_token,
     }
 

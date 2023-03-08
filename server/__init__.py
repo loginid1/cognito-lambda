@@ -3,10 +3,10 @@ from flask_jwt_extended import JWTManager
 from flask_restful import Api
 from server.api.users import UserResource
 from server.api.logout import LogoutResource
+from server.api.auth import auth_blueprint
 from server.api.pages import pages_blueprint
 from server.api.loginid import loginid_bluebrint
 import server.setup
-
 
 
 def create_app() -> Flask:
@@ -19,6 +19,7 @@ def create_app() -> Flask:
     app.config["JWT_CSRF_IN_COOKIES"] = True
     app.config["JWT_SECRET_KEY"] = "loginid"
 
+    app.register_blueprint(auth_blueprint)
     app.register_blueprint(pages_blueprint)
     app.register_blueprint(loginid_bluebrint)
 

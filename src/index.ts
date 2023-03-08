@@ -1,24 +1,15 @@
-import LoginID from "@loginid/sdk";
 import * as cognito from "./cognito";
 import { base64ToBuffer, bufferToBase64 } from "./encoding";
 import { elements, getValues } from "./elements";
 import { authUser, logoutUser } from "./user-api";
-import { CognitoUserAttribute } from "amazon-cognito-identity-js";
+import { fido2CreateInit, fido2CreateComplete } from "./loginid-api";
 import {
-  createUser,
-  deleteUser,
-  fido2CreateInit,
-  fido2CreateComplete,
-  generateServiceToken,
-  verifyJWT,
-} from "./loginid-api";
+  confirmEmail,
+  fido2RegisterComplete,
+  fido2RegisterInit,
+  passwordRegister,
+} from "./auth-api";
 
-import env from "./env";
-
-//setup
-const { LOGINID_BASE_URL, LOGINID_CLIENT_ID } = env;
-
-const loginid = new LoginID(LOGINID_BASE_URL, LOGINID_CLIENT_ID);
 const { form } = elements();
 
 form?.addEventListener("submit", async (event) => {
@@ -43,14 +34,6 @@ form?.addEventListener("submit", async (event) => {
     //REGISTRATION
     case "REG": {
       try {
-        const attributeList: CognitoUserAttribute[] = [];
-
-        const dataEmail = new CognitoUserAttribute({
-          Name: "email",
-          Value: email,
-        });
-        attributeList.push(dataEmail);
-
         //minor password logic
         if (flow === "FIDO2") {
           password = "";
@@ -60,45 +43,42 @@ form?.addEventListener("submit", async (event) => {
           }
         }
 
-        let loginidUserId = "";
         if (flow === "FIDO2") {
-          //loginid signup
-          const serviceToken = await generateServiceToken(
-            username,
-            "auth.register"
-          );
+          const publicKey = await fido2RegisterInit(username);
+          const { challenge } = publicKey;
 
-          const { jwt, user: loginidUser } = await loginid.registerWithFido2(
-            username,
-            { authorization_token: serviceToken }
-          );
+          publicKey.challenge = base64ToBuffer(publicKey.challenge);
+          publicKey.user.id = base64ToBuffer(publicKey.user.id);
 
-          const jwtValid = await verifyJWT(username, jwt || "");
-
-          if (!jwtValid) {
-            throw new Error("LoginID JWT verification failed");
+          if (publicKey.excludeCredentials) {
+            for (const credential of publicKey.excludeCredentials) {
+              credential.id = base64ToBuffer(credential.id);
+            }
           }
 
-          loginidUserId = loginidUser.id;
-          // need to create a user with no credential on LoginID if password flow
+          const credential = (await navigator.credentials.create({
+            publicKey,
+          })) as PublicKeyCredential;
+
+          if (!credential) {
+            throw new Error("Failed to create credential");
+          }
+
+          const response =
+            credential.response as AuthenticatorAttestationResponse;
+
+          const attestation = {
+            credential_uuid: publicKey.credential_uuid,
+            challenge: challenge,
+            credential_id: bufferToBase64(credential.rawId),
+            client_data: bufferToBase64(response.clientDataJSON),
+            attestation_data: bufferToBase64(response.attestationObject),
+          };
+
+          await fido2RegisterComplete(username, email, attestation);
         } else {
-          const { id } = await createUser(username);
-
-          loginidUserId = id;
+          await passwordRegister(username, email, password);
         }
-
-        const dataLoginIdUserId = new CognitoUserAttribute({
-          Name: "custom:loginidUserId",
-          Value: loginidUserId,
-        });
-        attributeList.push(dataLoginIdUserId);
-
-        //cognito signup
-        const { user: cognitoUser } = await cognito.userSignup(
-          username,
-          password,
-          attributeList
-        );
 
         //cognito email verification
         let code = "";
@@ -106,9 +86,9 @@ form?.addEventListener("submit", async (event) => {
           code = prompt("Please enter confirmation code:") || "";
         }
 
-        await cognito.confirmationCode(cognitoUser, code);
+        await confirmEmail(username, code);
 
-        alert("User fully registered: " + cognitoUser.getUsername());
+        alert("User fully registered: " + username);
 
         window.location.replace("login.html");
       } catch (e: any) {
