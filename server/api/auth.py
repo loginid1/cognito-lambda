@@ -108,9 +108,6 @@ def register_password():
     username, email, password = default_json("username", "email", "password")
 
     try:
-        # Register LoginID user without credentials
-        lid.add_user_without_credentials(username)
-
         # Cognito signup
         email_attribute = {
             "Name": "email",

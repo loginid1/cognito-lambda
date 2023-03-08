@@ -1,7 +1,7 @@
 import json
 import re
 
-from loginid import LoginID
+from loginid import LoginIdManagement
 from os import environ
 
 BASE_URL = environ.get("LOGINID_BASE_URL") or ""
@@ -12,7 +12,7 @@ PRIVATE_KEY = re.sub(
     environ.get("PRIVATE_KEY") or ""
 )
 
-lid = LoginID(CLIENT_ID, PRIVATE_KEY, BASE_URL)
+lid = LoginIdManagement(CLIENT_ID, PRIVATE_KEY, BASE_URL)
 
 class CustomError(Exception):
     """
@@ -39,8 +39,9 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     register_type = meta_data["register_type"]
 
-    # nothing to do here, just return
+    # Register LoginID user without credentials
     if register_type == "PASSWORD":
+        lid.add_user_without_credentials(username)
         return event
 
     if register_type == "FIDO2":
