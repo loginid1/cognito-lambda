@@ -4,8 +4,9 @@ from loginid import LoginIdManagement
 from loginid.core import LoginIDError
 from server.helpers.api import default_json
 from flask_jwt_extended import get_jwt_identity, jwt_required
-import boto3
 from botocore import exceptions
+
+import boto3
 
 from server.config import (
     COGNITO_ACCESS_KEY_ID,
@@ -86,17 +87,6 @@ def delete_user():
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
 
 
-'''
-Will find 'custom:loginidUserId'. If the attribute exist
-we know that this user has a fido2 credential. If not return None.
-'''
-def user_fido2_credential(access_token: str):
-    user = aws_cognito.get_user(AccessToken=access_token)
-    for attribute in user["UserAttributes"]:
-        if "custom:loginidUserId" in attribute.values():
-            return attribute["Value"]
-
-
 # note getting user data from cognito may not be necessary if stored somewhere else
 @loginid_bluebrint.route("fido2/create/init", methods=["POST"])
 @jwt_required()
@@ -104,10 +94,15 @@ def fido2_create_init():
     data = get_jwt_identity()
 
     try:
-        loginid_user_id = data["loginid_user_id"]
+        username = data["username"]
+        user = lid.get_user(username)
+        loginid_user_id = user["id"]
+
         init_response = lid.force_fido2_credential_init(loginid_user_id)
         attestation_payload = init_response["attestation_payload"]
         return attestation_payload, HTTPStatus.OK
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
     except Exception as e:
         print(e)
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
@@ -123,6 +118,8 @@ def fido2_create_complete():
         username = data["username"]
         complete_response = lid.complete_add_fido2_credential(attestation_payload, username)
         return complete_response, HTTPStatus.OK
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
     except Exception as e:
         print(e)
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST

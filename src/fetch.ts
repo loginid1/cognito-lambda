@@ -21,7 +21,7 @@ export const post = async <T>(
   url: string,
   body: any = {},
   options: FetchOptions = {}
-): Promise<T> => {
+): Promise<T | null> => {
   let headers: any = { "Content-Type": "application/json" };
 
   if (options.includeCSRF) {
@@ -37,6 +37,10 @@ export const post = async <T>(
   if (!response.ok) {
     const data = await response.json();
     throw data;
+  }
+
+  if (response.status === 204) {
+    return null;
   }
 
   return await response.json();
