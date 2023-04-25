@@ -18,13 +18,6 @@ An integration of Loginid and AWS Cognito authentication with custom authenticat
 - Add Mulitple FIDO2 Credentials
 - Add FIDO2 to Exisiting Password User
 
-## Installation
-
-```
-git clone git@gitlab.com:loginid/software/examples/loginid-cognito-lambda.git
-cd loginid-cognito-lambda
-```
-
 ## LoginID Set-Up
 
 Your going to need a confidential backend client.
@@ -62,14 +55,13 @@ We will further elaborate on certain crucial aspects of the setup process below.
 ### Cognito User Pool
 
 - Make sure that email validation is enabled.
-- Make a custom attribute `custom:loginidUserId`.
 - Configured lambda triggers will need to be created and enabled later on for `DefineAuthChallenge`, `CreateAuthChallenge`, and `VerifyAuthChallengeResponse`.
 
 ### Cognito User Pool Client
 
 A client will need to be created.
 
-- Make sure that the following Properties are readable and writeable: `email`, `name`, `custom:loginidUserId`.
+- Make sure that the following Properties are readable and writeable: `email` and `name`.
 
 ### Authentication Lambdas
 
@@ -91,20 +83,19 @@ This demo uses a combination of `amazon-cognito-identity-js` and a backend clien
 
 ## Environment Variables
 
-- coming soon
+This demo supports .env files. The following variables are required:
+
+```
+LOGINID_BASE_URL=                       # Base URL obtained from LoginID dashboard
+LOGINID_CLIENT_ID=                      # Backend client ID obtained from LoginID dashboard
+PRIVATE_KEY=                            # ES256 private key obtained from LoginID dashboard
+COGNITO_USER_POOL_ID=                   # Cognito user pool ID
+COGNITO_CLIENT_ID=                      # Cognito OAuth2 client
+COGNITO_REGION_NAME=                    # Cognito region name
+COGNITO_BASE_URL=                       # Cognito's base URL of the given region
+```
 
 ## How to Run
-
-### Backend
-
-Open up a terminal and enter root of project. This setup will use a virtual environment. You can use whatever suites you.
-
-```
-python -m venv venv
-source ./venv/.bin/activate
-pip install requirements.txt
-flask run
-```
 
 ### Backend
 

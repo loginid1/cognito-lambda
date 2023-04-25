@@ -10,15 +10,10 @@ Resources:
       AutoVerifiedAttributes:
         - email
       LambdaConfig:
+        PreSignUp: !GetAtt PreSignUp.Arn
         DefineAuthChallenge: !GetAtt DefineAuthChallenge.Arn
         CreateAuthChallenge: !GetAtt CreateAuthChallenge.Arn
         VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallenge.Arn
-      Schema:
-        - AttributeDataType: String
-          Name: loginidUserId
-          Mutable: true
-          StringAttributeConstraints:
-            MaxLength: 1024
         
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
@@ -31,19 +26,42 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
         - ALLOW_USER_SRP_AUTH
       WriteAttributes:
-        - custom:loginidUserId
         - email
         - name
       ReadAttributes:
-        - custom:loginidUserId
         - email
         - name
+
+  PreSignUp:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PreSignUp
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+      InlineCode: "code"
+      Environment:
+        Variables:
+          #LOGINID_BASE_URL: 
+          #LOGINID_CLIENT_ID: 
+          #PRIVATE_KEY: 
+      Layers:
+        #- arn:aws:lambda:us-west-1:978771399365:layer:LoginID-SDK:1
+  PreSignUpPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PreSignUp.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !GetAtt UserPool.Arn
 
   DefineAuthChallenge:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
-      Handler: indext.lambda_handler
+      Handler: index.lambda_handler
       Runtime: python3.9
       MemorySize: 1024
       Timeout: 30
@@ -67,8 +85,13 @@ Resources:
       Timeout: 30
       Tracing: Active
       InlineCode: "code"
+      Environment:
+        Variables:
+          #LOGINID_BASE_URL: 
+          #LOGINID_CLIENT_ID: 
+          #PRIVATE_KEY: 
       Layers:
-        - arn:aws:lambda:us-east-2:978771399365:layer:loginid-sdk-python:1
+        #- arn:aws:lambda:us-west-1:978771399365:layer:LoginID-SDK:1
   CreateAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -87,8 +110,13 @@ Resources:
       Timeout: 30
       Tracing: Active
       InlineCode: "code"
+      Environment:
+        Variables:
+          #LOGINID_BASE_URL: 
+          #LOGINID_CLIENT_ID: 
+          #PRIVATE_KEY: 
       Layers:
-        - arn:aws:lambda:us-east-2:978771399365:layer:loginid-sdk-python:1
+        #- arn:aws:lambda:us-west-1:978771399365:layer:LoginID-SDK:1
   VerifyAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:

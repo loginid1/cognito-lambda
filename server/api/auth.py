@@ -90,7 +90,7 @@ def confirm_email():
     try:
         aws_cognito.confirm_sign_up(
             ClientId=COGNITO_CLIENT_ID,
-            Username=username,
+            Username=username.lower(),
             ConfirmationCode=otp
         )
 

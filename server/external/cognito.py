@@ -1,5 +1,6 @@
 import jwt
 from server.config import (
+    COGNITO_BASE_URL,
     COGNITO_CLIENT_ID,
     COGNITO_USER_POOL_ID
 )
@@ -7,7 +8,7 @@ from server.config import (
 
 class Cognito:
     def __init__(self) -> None:
-        self.base_url = "https://cognito-idp.us-east-2.amazonaws.com"
+        self.base_url = COGNITO_BASE_URL
 
 
     def issuer_url(self) -> str:

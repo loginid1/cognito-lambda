@@ -95,8 +95,16 @@ def fido2_create_init():
 
     try:
         username = data["username"]
-        user = lid.get_user(username)
-        loginid_user_id = user["id"]
+
+        try:
+            user = lid.get_user(username)
+            loginid_user_id = user["id"]
+        except LoginIDError as e:
+            if e.status_code == 404 and e.error_code == "user_not_found":
+                user = lid.add_user_without_credentials(username)
+                loginid_user_id = user["id"]
+            else:
+                raise e
 
         init_response = lid.force_fido2_credential_init(loginid_user_id)
         attestation_payload = init_response["attestation_payload"]
