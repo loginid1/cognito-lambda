@@ -130,3 +130,40 @@ Outputs :
     Value: !Ref 'UserPool'
   AppClientID:
     Value: !Ref 'UserPoolClient'
+
+
+Parameters:
+  LOGINID_FIDO2_Rpid:
+    Type: String
+    Default: ""
+    Description: "The RPID is the domain of your user facing authentication interface. By default it will be set to whatever domain your solution is hoster on. However be aware that FIDO/Passkey credentials, public keys, will be permanently bound to the specified domain without ability to change that. You may wish to set RPID to be a root of your website: example.com, and this would allow your child subdomains, login.example.com, to login with these credentials, so long you explicitly specify that it should use your parent, or root RPID, example.com. You will need to specify your actual domain, origin, allow list."
+  LOGINID_FIDO2_Origin_Allowlist:
+    Type: String
+    Default: ""
+    Description: "List of allowed origins. At least one must be specified. Comma separated. Must includes protocol. HTTPS is mandatory. Example: https://login.example.com,https://auth.example.com,https://example.com"
+  
+  LOGINID_UI_Page_Background_Color:
+    Type: String
+    Default: ""
+    Description: "Page background color in web RGB #FFFFFF notation"
+  LOGINID_UI_Page_Background_Image:
+    Type: String
+    Default: ""
+    Description: "URL location of your page background image"
+  
+  LOGINID_UI_Login_Logo:
+    Type: String
+    Default: ""
+    Description: "URL location of your login UI logo"
+  LOGINID_UI_Login_Background_Color:
+    Type: String
+    Default: ""
+    Description: "UI box background color in web RGB #FFFFFF notation"
+  LOGINID_UI_Login_Buttons_Color:
+    Type: String
+    Default: ""
+    Description: "UI box buttons color in web RGB #FFFFFF notation"
+  LOGINID_UI_Page_Background_Image:
+    Type: String
+    Default: ""
+    Description: "URL location of your UI box background image"
