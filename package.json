@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "dev": "parcel ./views/index.pug ./views/home.pug",
+    "dev": "parcel ./client/index.html --open",
     "build": "parcel build ./views/index.pug ./views/home.pug --public-url /",
     "heroku-postbuild": "npm run build"
   },
@@ -11,13 +11,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@emotion/react": "^11.11.1",
     "@loginid/node-sdk": "^0.8.3",
     "@loginid/sdk": "^0.13.0",
+    "@mantine/core": "^6.0.17",
+    "@mantine/hooks": "^6.0.17",
     "amazon-cognito-identity-js": "^6.1.2",
-    "parcel": "^2.8.3"
+    "parcel": "^2.9.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@parcel/transformer-pug": "^2.8.3",
-    "buffer": "^5.7.1"
+    "@types/react": "^18.2.16",
+    "@types/react-dom": "^18.2.7",
+    "buffer": "^5.7.1",
+    "process": "^0.11.10"
   }
 }
