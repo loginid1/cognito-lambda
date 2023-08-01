@@ -1,6 +1,10 @@
 import { createStyles } from "@mantine/core";
 
-import { BACKGROUND_IMAGE, PAGE_BACKGROUND_COLOR } from "../../environment/";
+import {
+  BACKGROUND_COLOR,
+  BACKGROUND_IMAGE,
+  BUTTONS_COLOR,
+} from "../../environment/";
 
 export default createStyles((theme) => ({
   wrapper: {
@@ -10,8 +14,7 @@ export default createStyles((theme) => ({
     justifyContent: "center",
     alignItems: "center",
     background: `url(${BACKGROUND_IMAGE}) center/cover no-repeat, ${
-      //default to light gray
-      PAGE_BACKGROUND_COLOR || theme.colors.gray[4]
+      BACKGROUND_COLOR || theme.colors.gray[4]
     }`,
   },
   innerWrapper: {

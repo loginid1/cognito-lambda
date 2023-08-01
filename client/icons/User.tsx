@@ -1,4 +1,4 @@
-const UserIcon = function UserIcon() {
+const UserIcon = function () {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 100">
       <path
