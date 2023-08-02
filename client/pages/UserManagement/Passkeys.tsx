@@ -50,7 +50,7 @@ const Passkeys = function () {
 
   return (
     <section className={classes.wrapper}>
-      <Title mb="xs" order={3}>
+      <Title mb="xs" order={4}>
         My Passkeys
       </Title>
       <Accordion
@@ -73,7 +73,7 @@ const Passkeys = function () {
         ))}
       </Accordion>
       <div className={classes.addPasskeyRow}>
-        <Button mr="sm" variant="outline" size="md" leftIcon={<AddIcon />}>
+        <Button mr="sm" variant="outline" size="sm" leftIcon={<AddIcon />}>
           Add new passkey
         </Button>
         <ActionIcon onClick={() => setOpenedFAQ(true)} size="lg">

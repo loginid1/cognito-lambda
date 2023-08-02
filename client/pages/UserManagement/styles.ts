@@ -46,6 +46,7 @@ export default createStyles((theme) => ({
   },
   deleteButton: {
     backgroundColor: theme.colors.red[6],
+    borderColor: theme.colors.red[6],
     "&:hover": {
       backgroundColor: theme.colors.red[5],
       opacity: 1,
