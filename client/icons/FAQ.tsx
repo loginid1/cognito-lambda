@@ -15,8 +15,8 @@ const FAQIcon = function ({ fill }: Props) {
       version="1.1"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-      <g stroke-linecap="round" stroke-linejoin="round"></g>
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g strokeLinecap="round" strokeLinejoin="round"></g>
       <g id="SVGRepo_iconCarrier">
         <path
           d="M320 853.333333h490.666667l128 128V533.333333c0-46.933333-38.4-85.333333-85.333334-85.333333H320c-46.933333 0-85.333333 38.4-85.333333 85.333333v234.666667c0 46.933333 38.4 85.333333 85.333333 85.333333z"

@@ -26,4 +26,29 @@ export default createStyles((theme) => ({
       marginRight: 3,
     },
   },
+  modalWrapper: {
+    padding: theme.spacing.md,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  modalFAQWrapper: {
+    padding: theme.spacing.md,
+    display: "flex",
+    flexDirection: "column",
+    "& li": {
+      marginBottom: theme.spacing.md,
+    },
+    "& svg": {
+      alignSelf: "center",
+      marginBottom: theme.spacing.xl,
+    },
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.red[6],
+    "&:hover": {
+      backgroundColor: theme.colors.red[5],
+      opacity: 1,
+    },
+  },
 }));
