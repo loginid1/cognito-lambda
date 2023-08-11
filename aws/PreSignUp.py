@@ -32,6 +32,10 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     request = event["request"]
     username = event["userName"]
+
+    if "clientMetadata" not in request:
+        return event
+
     meta_data = request["clientMetadata"]
 
     if not meta_data.get("register_type"):

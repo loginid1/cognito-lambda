@@ -16,8 +16,7 @@ class UserResource(Resource):
     @jwt_required()
     def get(self):
         data = get_jwt_identity()
-        username = data["username"]
-        response_data = {"username": username}
+        response_data = {"username": data}
         return json_response(response_data, HTTPStatus.OK)
 
 

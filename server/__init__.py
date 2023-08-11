@@ -26,7 +26,7 @@ def create_app() -> Flask:
     JWTManager(app)
 
     api = Api(app)
-    api.add_resource(UserResource, "/api/users")
+    api.add_resource(UserResource, "/api/user")
     api.add_resource(LogoutResource, "/api/users/logout")
 
     return app

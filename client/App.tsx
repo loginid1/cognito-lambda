@@ -5,7 +5,7 @@ import UserManagement from "./pages/UserManagement";
 export function App() {
   return (
     <ThemeProvider>
-      <UserManagement />
+      <Login />
     </ThemeProvider>
   );
 }
