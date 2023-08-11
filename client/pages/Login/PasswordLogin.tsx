@@ -4,6 +4,7 @@ import useStyle from "./styles";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
 import { passwordAuthenticate } from "../../services/auth";
+import { useAuth } from "../../contexts/AuthContext";
 
 const PasswordLogin = function ({
   handlerUsername,
@@ -13,13 +14,16 @@ const PasswordLogin = function ({
   const { classes } = useStyle();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const { login } = useAuth();
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     //maybe add a curtain componet for loading or button loading
     try {
-      const res = await passwordAuthenticate(username, password);
-      console.log(res);
+      const user = await passwordAuthenticate(username, password);
+      if (user) {
+        login(user);
+      }
     } catch (e: any) {
       setError(e.message);
     }

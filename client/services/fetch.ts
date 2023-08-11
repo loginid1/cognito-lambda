@@ -1,3 +1,16 @@
+export const get = async <T>(url: string): Promise<T | null> => {
+  const response = await fetch(url, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw data;
+  }
+
+  return await response.json();
+};
+
 export const post = async <T>(
   url: string,
   body: any = {}
