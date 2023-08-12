@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, Response, jsonify, request
 from http import HTTPStatus
 from loginid import LoginIdManagement
 from loginid.core import LoginIDError
@@ -82,6 +82,40 @@ def delete_user():
             response.status_code = HTTPStatus.NO_CONTENT
             return response
         raise e
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
+
+
+def filter_credentials(credentials, type: str):
+    data = {}
+    if type == "":
+        data["credentials"] = credentials
+        return data
+    data["credentials"] = [credential for credential in credentials if credential["type"] == type]
+    return data
+
+
+@loginid_bluebrint.route("/credentials/list", methods=["GET"])
+@jwt_required()
+def credentials_list():
+    username = get_jwt_identity()
+    type = request.args.get("type") or ""
+
+    try:
+        try:
+            lid_response = lid.get_credentials(username=username)
+            return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
+        except LoginIDError as e:
+            if e.error_code == "user_not_found" and e.status_code == HTTPStatus.NOT_FOUND:
+                lid.add_user_without_credentials(username)
+                lid_response = lid.get_credentials(username=username)
+                return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
+            else:
+                raise e
+
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
     except Exception as e:
         print(e)
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST

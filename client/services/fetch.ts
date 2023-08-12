@@ -1,4 +1,4 @@
-export const get = async <T>(url: string): Promise<T | null> => {
+export const get = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, {
     method: "GET",
   });

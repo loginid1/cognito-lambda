@@ -6,19 +6,24 @@ import AddIcon from "../../icons/Add";
 import FAQIcon from "../../icons/FAQ";
 import DeletePasskeyModal from "./DeletePasskeyModal";
 import FAQModal from "./FAQModal";
+import { useFetchResources } from "../../hooks/common";
 
 const Passkeys = function () {
   const { classes } = useStyles();
-  const [data, setData] = useState<{ id: string; name: string }[]>([
-    { id: "0", name: "Android" },
-    { id: "1", name: "iOS" },
-    { id: "2", name: "issssssssssssssssss" },
-    { id: "3", name: "a".repeat(100) },
+  /*
+  const [data, setData] = useState<Credential[]>([
+    { uuid: "0", name: "Android", status: "active" },
+    { uuid: "1", name: "iOS", status: "active" },
+    { uuid: "2", name: "issssssssssssssssss", status: "active" },
+    { uuid: "3", name: "a".repeat(100), status: "active" },
   ]);
+   */
   const [passkeyID, setPasskeyID] = useState<string | null>(null);
   const [tempPasskeyID, setTempPasskeyID] = useState<string | null>(null);
   const [openedDeletePasskey, setOpenedDeletePasskey] = useState(false);
   const [openedFAQ, setOpenedFAQ] = useState(false);
+
+  const { passkeys, setPasskeys } = useFetchResources();
 
   const handleAccordionChange = (id: string) => {
     if (tempPasskeyID) {
@@ -36,15 +41,15 @@ const Passkeys = function () {
   };
 
   const handleRename = (id: string, name: string) => {
-    const newData = data.map((passkey) => {
-      return passkey.id === id ? { ...passkey, name } : passkey;
+    const newData = passkeys.map((passkey) => {
+      return passkey.uuid === id ? { ...passkey, name } : passkey;
     });
-    setData(newData);
+    setPasskeys(newData);
   };
 
   const handleDelete = () => {
-    const newData = data.filter((passkey) => passkey.id !== passkeyID);
-    setData(newData);
+    const newData = passkeys.filter((passkey) => passkey.uuid !== passkeyID);
+    setPasskeys(newData);
     setOpenedDeletePasskey(false);
   };
 
@@ -60,15 +65,15 @@ const Passkeys = function () {
         chevronPosition="right"
         variant="contained"
       >
-        {data.map((passkey, index) => (
+        {passkeys.map((passkey, index) => (
           <Passkey
             key={passkey.name + index}
-            id={passkey.id}
+            id={passkey.uuid}
             name={passkey.name}
             handleFocus={handleFocus}
             handleRename={handleRename}
             handleOpenModal={handleOpenDeleteModal}
-            shouldFocus={tempPasskeyID === passkey.id}
+            shouldFocus={tempPasskeyID === passkey.uuid}
           />
         ))}
       </Accordion>
