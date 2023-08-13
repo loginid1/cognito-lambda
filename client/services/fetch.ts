@@ -1,3 +1,11 @@
+export const getCookieValue = (name: string): string => {
+  const cookie = document.cookie
+    .split(";")
+    .find((c) => c.trim().startsWith(name + "="));
+  if (!cookie) return "";
+  return cookie.split("=")[1];
+};
+
 export const get = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, {
     method: "GET",
@@ -13,13 +21,14 @@ export const get = async <T>(url: string): Promise<T> => {
 
 export const post = async <T>(
   url: string,
-  body: any = {}
+  body: any = {},
+  headers: any = {}
 ): Promise<T | null> => {
-  let headers: any = { "Content-Type": "application/json" };
+  let _headers: any = { "Content-Type": "application/json" };
 
   const response = await fetch(url, {
     method: "POST",
-    headers,
+    headers: { ..._headers, ...headers },
     body: JSON.stringify(body),
   });
 
@@ -33,4 +42,12 @@ export const post = async <T>(
   }
 
   return await response.json();
+};
+
+export const postWithCRSF = async <T>(url: string, body: any) => {
+  const csrf = getCookieValue("csrf_access_token");
+  const response = post<T>(url, body, {
+    "X-CSRF-TOKEN": csrf,
+  });
+  return response;
 };

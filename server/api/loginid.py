@@ -103,16 +103,8 @@ def credentials_list():
     type = request.args.get("type") or ""
 
     try:
-        try:
-            lid_response = lid.get_credentials(username=username)
-            return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
-        except LoginIDError as e:
-            if e.error_code == "user_not_found" and e.status_code == HTTPStatus.NOT_FOUND:
-                lid.add_user_without_credentials(username)
-                lid_response = lid.get_credentials(username=username)
-                return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
-            else:
-                raise e
+        lid_response = lid.get_credentials(username=username)
+        return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
 
     except LoginIDError as e:
         return jsonify(message=e.message), e.status_code
@@ -121,24 +113,14 @@ def credentials_list():
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
 
 
-# note getting user data from cognito may not be necessary if stored somewhere else
 @loginid_bluebrint.route("fido2/create/init", methods=["POST"])
 @jwt_required()
 def fido2_create_init():
-    data = get_jwt_identity()
+    username = get_jwt_identity()
 
     try:
-        username = data["username"]
-
-        try:
-            user = lid.get_user(username)
-            loginid_user_id = user["id"]
-        except LoginIDError as e:
-            if e.status_code == 404 and e.error_code == "user_not_found":
-                user = lid.add_user_without_credentials(username)
-                loginid_user_id = user["id"]
-            else:
-                raise e
+        user = lid.get_user(username)
+        loginid_user_id = user["id"]
 
         init_response = lid.force_fido2_credential_init(loginid_user_id)
         attestation_payload = init_response["attestation_payload"]
@@ -154,12 +136,13 @@ def fido2_create_init():
 @jwt_required()
 def fido2_create_complete():
     attestation_payload, = default_json("attestation_payload")
-    data = get_jwt_identity()
+    username = get_jwt_identity()
 
     try:
-        username = data["username"]
-        complete_response = lid.complete_add_fido2_credential(attestation_payload, username)
-        return complete_response, HTTPStatus.OK
+        lid_response = lid.complete_add_fido2_credential(attestation_payload, username)
+        response = {}
+        response["credential"] = lid_response["credential"]
+        return response, HTTPStatus.OK
     except LoginIDError as e:
         return jsonify(message=e.message), e.status_code
     except Exception as e:

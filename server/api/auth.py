@@ -58,6 +58,15 @@ def verify_and_add_cookie(res: Response) -> Response:
             res.data = json.dumps({"error": "Unauthorized"})
             return res
 
+        username = jwt_payload["cognito:username"]
+        try:
+            # check if username is in loginid
+            lid.get_user(username=username)
+        except LoginIDError as e:
+            if e.error_code == "user_not_found" and e.status_code == HTTPStatus.NOT_FOUND:
+                # we add a preauthorized used to loginid
+                lid.add_user_without_credentials(username)
+
         session_token = create_session_token(jwt_payload, access_token)
         set_access_cookies(res, session_token)
 

@@ -1,4 +1,4 @@
-import { get } from "./fetch";
+import { get, postWithCRSF } from "./fetch";
 
 const BASE_URL = "/api/loginid";
 
@@ -15,9 +15,24 @@ export interface CredentialsData {
   credentials: Credential[];
 }
 
+export interface CredentialData {
+  credential: Credential;
+}
+
 export const credentialList = async (type = "fido2") => {
   const response = get<CredentialsData>(
     BASE_URL + "/credentials/list?type=" + type
   );
   return response;
+};
+
+export const fido2CreateInit = async () => {
+  return await postWithCRSF<any>(BASE_URL + "/fido2/create/init", null);
+};
+
+export const fido2CreateComplete = async (body: any) => {
+  return await postWithCRSF<CredentialData>(
+    BASE_URL + "/fido2/create/complete",
+    body
+  );
 };

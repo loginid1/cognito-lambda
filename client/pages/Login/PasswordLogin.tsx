@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
-import { Button, Input, Text } from "@mantine/core";
+import { Button, Input } from "@mantine/core";
 import useStyle from "./styles";
+import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
 import { passwordAuthenticate } from "../../services/auth";
@@ -32,11 +33,7 @@ const PasswordLogin = function ({
   return (
     <form onSubmit={handlerSubmit}>
       <div className={classes.buttonWrapper}>
-        {error && (
-          <Text color="red" fw={650} mb="lg">
-            {error}
-          </Text>
-        )}
+        {error && <ErrorText>{error}</ErrorText>}
         <Input
           onChange={handlerUsername}
           mb="lg"

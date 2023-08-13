@@ -6,7 +6,10 @@ import AddIcon from "../../icons/Add";
 import FAQIcon from "../../icons/FAQ";
 import DeletePasskeyModal from "./DeletePasskeyModal";
 import FAQModal from "./FAQModal";
+import ErrorText from "../../components/ErrorText";
 import { useFetchResources } from "../../hooks/common";
+import { fido2CreateComplete, fido2CreateInit } from "../../services/loginid";
+import * as webauthn from "../../webauthn/";
 
 const Passkeys = function () {
   const { classes } = useStyles();
@@ -22,6 +25,7 @@ const Passkeys = function () {
   const [tempPasskeyID, setTempPasskeyID] = useState<string | null>(null);
   const [openedDeletePasskey, setOpenedDeletePasskey] = useState(false);
   const [openedFAQ, setOpenedFAQ] = useState(false);
+  const [error, setError] = useState("Passkey failed");
 
   const { passkeys, setPasskeys } = useFetchResources();
 
@@ -53,11 +57,28 @@ const Passkeys = function () {
     setOpenedDeletePasskey(false);
   };
 
+  const handleAddPasskey = async () => {
+    try {
+      const initRes = await fido2CreateInit();
+      const pulicKey = await webauthn.create(initRes);
+      const completeRes = await fido2CreateComplete(pulicKey);
+      //add new passkey to the list
+      if (completeRes) {
+        const { credential } = completeRes;
+        setPasskeys([...passkeys, credential]);
+      }
+      setError("");
+    } catch (e: any) {
+      setError("ERROR: " + e.message);
+    }
+  };
+
   return (
     <section className={classes.wrapper}>
       <Title mb="xs" order={4}>
         My Passkeys
       </Title>
+      {error && <ErrorText>{error}</ErrorText>}
       <Accordion
         onChange={handleAccordionChange}
         value={passkeyID}
@@ -78,7 +99,13 @@ const Passkeys = function () {
         ))}
       </Accordion>
       <div className={classes.addPasskeyRow}>
-        <Button mr="sm" variant="outline" size="sm" leftIcon={<AddIcon />}>
+        <Button
+          onClick={handleAddPasskey}
+          mr="sm"
+          variant="outline"
+          size="sm"
+          leftIcon={<AddIcon />}
+        >
           Add new passkey
         </Button>
         <ActionIcon onClick={() => setOpenedFAQ(true)} size="lg">
