@@ -13,6 +13,17 @@ export interface PublicKeyAttestationCredential {
   };
 }
 
+export interface PublicKeyAssertionCredential {
+  username?: string;
+  session?: string;
+  assertion_payload: {
+    credential_id: Base64;
+    client_data: Base64;
+    authenticator_data: Base64;
+    signature: Base64;
+  };
+}
+
 export const create = async (
   publicKey: any
 ): Promise<PublicKeyAttestationCredential> => {
@@ -48,4 +59,37 @@ export const create = async (
   };
 
   return attestation;
+};
+
+export const get = async (
+  publicKey: any
+): Promise<PublicKeyAssertionCredential> => {
+  publicKey.challenge = base64ToBuffer(publicKey.challenge);
+
+  if (publicKey.allowCredentials) {
+    for (const credential of publicKey.allowCredentials) {
+      credential.id = base64ToBuffer(credential.id);
+    }
+  }
+
+  const credential = (await navigator.credentials.get({
+    publicKey,
+  })) as PublicKeyCredential;
+
+  if (!credential) {
+    throw new Error("Failed to authenticate credential");
+  }
+
+  const response = credential.response as AuthenticatorAssertionResponse;
+
+  const assertion = {
+    assertion_payload: {
+      credential_id: bufferToBase64(credential.rawId),
+      client_data: bufferToBase64(response.clientDataJSON),
+      authenticator_data: bufferToBase64(response.authenticatorData),
+      signature: bufferToBase64(response.signature),
+    },
+  };
+
+  return assertion;
 };

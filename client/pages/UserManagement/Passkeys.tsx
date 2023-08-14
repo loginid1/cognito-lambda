@@ -120,6 +120,9 @@ const Passkeys = function () {
 
       {/* Modal Delete Passkey */}
       <DeletePasskeyModal
+        passkeyName={
+          passkeys.find((passkey) => passkey.uuid === passkeyID)?.name || ""
+        }
         onClose={() => setOpenedDeletePasskey(false)}
         opened={openedDeletePasskey}
         handleDelete={handleDelete}

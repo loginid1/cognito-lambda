@@ -78,6 +78,67 @@ def verify_and_add_cookie(res: Response) -> Response:
     return res
 
 
+@auth_blueprint.route("fido2/authenticate/init", methods=["POST"])
+def fido2_authenticate_init():
+    username, = default_json("username")
+    try:
+        aws_response = aws_cognito.initiate_auth(
+            ClientId=COGNITO_CLIENT_ID,
+            AuthFlow="CUSTOM_AUTH",
+            AuthParameters={
+                "USERNAME": username,
+            },
+        )
+
+        if aws_response["ChallengeName"] == "CUSTOM_CHALLENGE":
+            challenge = aws_response["ChallengeParameters"]["public_key"] = json.loads(
+                aws_response["ChallengeParameters"]["public_key"]
+            )
+            response = {**challenge}
+            response["session"] = aws_response["Session"]
+            return response, HTTPStatus.OK
+        else:
+            print("Custom challenge not returned")
+            return jsonify(message="Authentication failed"), HTTPStatus.INTERNAL_SERVER_ERROR
+
+    except aws_cognito.exceptions.UserNotFoundException:
+        return jsonify(message="Authentication failed - User not found"), HTTPStatus.UNAUTHORIZED
+    except Exception as e:
+        print(e)
+        return jsonify(message="Authentication failed"), HTTPStatus.BAD_REQUEST
+
+
+@auth_blueprint.route("fido2/authenticate/complete", methods=["POST"])
+def fido2_authenticate_complete():
+    username, assertion_payload, session = default_json("username", "assertion_payload", "session")
+
+    challenge_response = {}
+    challenge_response["assertion"] = assertion_payload
+    challenge_response = json.dumps(challenge_response)
+
+    try:
+        aws_response = aws_cognito.respond_to_auth_challenge(
+            ClientId=COGNITO_CLIENT_ID,
+            ChallengeName="CUSTOM_CHALLENGE",
+            Session=session,
+            ChallengeResponses={
+                "USERNAME": username,
+                "ANSWER": challenge_response,
+            },
+        )
+
+        # set aws_response to g object
+        g.aws_response = aws_response
+
+        return authentication_payload(username), HTTPStatus.OK
+
+    except aws_cognito.exceptions.UserNotFoundException:
+        return jsonify(message="Authentication failed - User not found"), HTTPStatus.UNAUTHORIZED
+    except Exception as e:
+        print(e)
+        return jsonify(message="Authentication failed"), HTTPStatus.BAD_REQUEST
+
+
 @auth_blueprint.route("fido2/register/init", methods=["POST"])
 def fido2_register_init():
     username, = default_json("username")

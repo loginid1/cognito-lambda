@@ -13,3 +13,15 @@ export const passwordAuthenticate = async (
   });
   return response;
 };
+
+export const fido2AuthenticateInit = async (username: string) => {
+  const response = post<any>(BASE_URL + "/fido2/authenticate/init", {
+    username,
+  });
+  return response;
+};
+
+export const fido2AuthenticateComplete = async (body: any) => {
+  const response = post<User>(BASE_URL + "/fido2/authenticate/complete", body);
+  return response;
+};
