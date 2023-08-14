@@ -8,24 +8,16 @@ import DeletePasskeyModal from "./DeletePasskeyModal";
 import FAQModal from "./FAQModal";
 import ErrorText from "../../components/ErrorText";
 import { useFetchResources } from "../../hooks/common";
-import { fido2CreateComplete, fido2CreateInit } from "../../services/loginid";
 import * as webauthn from "../../webauthn/";
+import { fido2CreateComplete, fido2CreateInit } from "../../services/loginid";
 
 const Passkeys = function () {
   const { classes } = useStyles();
-  /*
-  const [data, setData] = useState<Credential[]>([
-    { uuid: "0", name: "Android", status: "active" },
-    { uuid: "1", name: "iOS", status: "active" },
-    { uuid: "2", name: "issssssssssssssssss", status: "active" },
-    { uuid: "3", name: "a".repeat(100), status: "active" },
-  ]);
-   */
   const [passkeyID, setPasskeyID] = useState<string | null>(null);
   const [tempPasskeyID, setTempPasskeyID] = useState<string | null>(null);
   const [openedDeletePasskey, setOpenedDeletePasskey] = useState(false);
   const [openedFAQ, setOpenedFAQ] = useState(false);
-  const [error, setError] = useState("Passkey failed");
+  const [error, setError] = useState("");
 
   const { passkeys, setPasskeys } = useFetchResources();
 
@@ -44,7 +36,7 @@ const Passkeys = function () {
     setPasskeyID(null);
   };
 
-  const handleRename = (id: string, name: string) => {
+  const handleRename = async (id: string, name: string) => {
     const newData = passkeys.map((passkey) => {
       return passkey.uuid === id ? { ...passkey, name } : passkey;
     });

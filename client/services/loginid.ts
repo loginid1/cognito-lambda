@@ -26,6 +26,17 @@ export const credentialList = async (type = "fido2") => {
   return response;
 };
 
+export const renameCredential = async (
+  credentialUUID: string,
+  name: string
+) => {
+  const response = postWithCRSF<CredentialData>(
+    BASE_URL + "/credentials/rename",
+    { credential_uuid: credentialUUID, name: name }
+  );
+  return response;
+};
+
 export const fido2CreateInit = async () => {
   return await postWithCRSF<any>(BASE_URL + "/fido2/create/init", null);
 };

@@ -28,6 +28,21 @@ aws_cognito = boto3.client(
 )
 
 
+def filter_credentials(credentials, type: str):
+    data = {}
+    if type == "":
+        data["credentials"] = credentials
+        return data
+    data["credentials"] = [credential for credential in credentials if credential["type"] == type]
+    return data
+
+
+def process_loginid_credential_response(lid_response):
+    response = {}
+    response["credential"] = lid_response["credential"]
+    return response
+
+
 @loginid_bluebrint.route("/token/generate", methods=["POST"])
 def create_service_token():
     username, scope = default_json(
@@ -87,14 +102,6 @@ def delete_user():
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
 
 
-def filter_credentials(credentials, type: str):
-    data = {}
-    if type == "":
-        data["credentials"] = credentials
-        return data
-    data["credentials"] = [credential for credential in credentials if credential["type"] == type]
-    return data
-
 
 @loginid_bluebrint.route("/credentials/list", methods=["GET"])
 @jwt_required()
@@ -105,6 +112,27 @@ def credentials_list():
     try:
         lid_response = lid.get_credentials(username=username)
         return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
+
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
+
+
+@loginid_bluebrint.route("/credentials/rename", methods=["POST"])
+@jwt_required()
+def credentials_rename():
+    username = get_jwt_identity()
+    credential_uuid, name = default_json("credential_uuid", "name")
+
+    try:
+        lid_response = lid.rename_credential(
+            cred_id=credential_uuid,
+            updated_name=name,
+            username=username
+        )
+        return process_loginid_credential_response(lid_response), HTTPStatus.OK
 
     except LoginIDError as e:
         return jsonify(message=e.message), e.status_code
@@ -140,9 +168,7 @@ def fido2_create_complete():
 
     try:
         lid_response = lid.complete_add_fido2_credential(attestation_payload, username)
-        response = {}
-        response["credential"] = lid_response["credential"]
-        return response, HTTPStatus.OK
+        return process_loginid_credential_response(lid_response), HTTPStatus.OK
     except LoginIDError as e:
         return jsonify(message=e.message), e.status_code
     except Exception as e:
