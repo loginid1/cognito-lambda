@@ -21,7 +21,7 @@ export interface CredentialData {
 
 export const credentialList = async (type = "fido2") => {
   const response = get<CredentialsData>(
-    BASE_URL + "/credentials/list?type=" + type
+    BASE_URL + "/credentials/list?status=active&type=" + type
   );
   return response;
 };
@@ -33,6 +33,14 @@ export const renameCredential = async (
   const response = postWithCRSF<CredentialData>(
     BASE_URL + "/credentials/rename",
     { credential_uuid: credentialUUID, name: name }
+  );
+  return response;
+};
+
+export const revokeCredential = async (credentialUUID: string) => {
+  const response = postWithCRSF<CredentialData>(
+    BASE_URL + "/credentials/revoke",
+    { credential_uuid: credentialUUID }
   );
   return response;
 };

@@ -108,9 +108,10 @@ def delete_user():
 def credentials_list():
     username = get_jwt_identity()
     type = request.args.get("type") or ""
+    status = request.args.get("status") or ""
 
     try:
-        lid_response = lid.get_credentials(username=username)
+        lid_response = lid.get_credentials(status=status, username=username)
         return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
 
     except LoginIDError as e:
@@ -130,6 +131,26 @@ def credentials_rename():
         lid_response = lid.rename_credential(
             cred_id=credential_uuid,
             updated_name=name,
+            username=username
+        )
+        return process_loginid_credential_response(lid_response), HTTPStatus.OK
+
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
+
+
+@loginid_bluebrint.route("/credentials/revoke", methods=["POST"])
+@jwt_required()
+def credentials_revoke():
+    username = get_jwt_identity()
+    credential_uuid, = default_json("credential_uuid")
+
+    try:
+        lid_response = lid.revoke_credential(
+            cred_id=credential_uuid,
             username=username
         )
         return process_loginid_credential_response(lid_response), HTTPStatus.OK

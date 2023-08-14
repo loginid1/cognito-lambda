@@ -8,8 +8,13 @@ import DeletePasskeyModal from "./DeletePasskeyModal";
 import FAQModal from "./FAQModal";
 import ErrorText from "../../components/ErrorText";
 import { useFetchResources } from "../../hooks/common";
+import { commonError } from "../../errors";
 import * as webauthn from "../../webauthn/";
-import { fido2CreateComplete, fido2CreateInit } from "../../services/loginid";
+import {
+  fido2CreateComplete,
+  fido2CreateInit,
+  revokeCredential,
+} from "../../services/loginid";
 
 const Passkeys = function () {
   const { classes } = useStyles();
@@ -43,10 +48,18 @@ const Passkeys = function () {
     setPasskeys(newData);
   };
 
-  const handleDelete = () => {
-    const newData = passkeys.filter((passkey) => passkey.uuid !== passkeyID);
-    setPasskeys(newData);
-    setOpenedDeletePasskey(false);
+  const handleDelete = async () => {
+    try {
+      if (!passkeyID) throw new Error("No passkey ID");
+      await revokeCredential(passkeyID);
+      const newData = passkeys.filter((passkey) => passkey.uuid !== passkeyID);
+      setPasskeys(newData);
+      setError("");
+    } catch (e: any) {
+      setError(commonError(e));
+    } finally {
+      setOpenedDeletePasskey(false);
+    }
   };
 
   const handleAddPasskey = async () => {
@@ -61,7 +74,7 @@ const Passkeys = function () {
       }
       setError("");
     } catch (e: any) {
-      setError("ERROR: " + e.message);
+      setError(commonError(e));
     }
   };
 

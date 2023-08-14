@@ -4,6 +4,7 @@ import { useRefFocus } from "../../hooks/common";
 import { EMPTY_PASSKEY_NAME } from "../../errors/";
 import { SmallIconButton } from "../../components/Button/";
 import { renameCredential } from "../../services/loginid";
+import { commonError } from "../../errors";
 import EditIcon from "../../icons/Edit";
 import CloseIcon from "../../icons/CloseIcon";
 import PasskeyIcon from "../../icons/Passkey";
@@ -37,7 +38,7 @@ const Passkey = function ({
       await renameCredential(id, name);
       handleFocus(null);
     } catch (e: any) {
-      setError(e.message);
+      setError(commonError(e));
     }
   };
 
