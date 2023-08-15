@@ -4,6 +4,7 @@ import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
+import { validateEmail } from "./validations";
 import * as cognito from "../../cognito/";
 
 const PasswordRegister = ({
@@ -18,7 +19,10 @@ const PasswordRegister = ({
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     try {
+      validateEmail(email);
+
       const user = await cognito.signUp(username, email, password);
       if (user) {
         handlerWhichLogin(Login.EmailVerification);

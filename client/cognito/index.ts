@@ -110,38 +110,10 @@ export const authenticate = (
     const callbackObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
         const publicKey = JSON.parse(challengParams.public_key);
-        console.log(publicKey);
         const result = await webauthn.get(publicKey);
         const assertion = {
           ...result.assertion_payload,
         };
-        /*
-        publicKey.challenge = base64ToBuffer(publicKey.challenge);
-
-        if (publicKey.allowCredentials) {
-          for (const credential of publicKey.allowCredentials) {
-            credential.id = base64ToBuffer(credential.id);
-          }
-        }
-
-        const credential = (await navigator.credentials.get({
-          publicKey,
-        })) as PublicKeyCredential;
-
-        if (!credential) {
-          throw new Error("Failed to authenticate credential");
-        }
-
-        const response = credential.response as AuthenticatorAssertionResponse;
-
-        const assertion = {
-          credential_id: bufferToBase64(credential.rawId),
-          client_data: bufferToBase64(response.clientDataJSON),
-          authenticator_data: bufferToBase64(response.authenticatorData),
-          signature: bufferToBase64(response.signature),
-        };
-		*/
-
         user.sendCustomChallengeAnswer(JSON.stringify({ assertion }), this);
       },
 

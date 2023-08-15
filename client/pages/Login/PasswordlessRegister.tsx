@@ -3,8 +3,13 @@ import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
-import { useAuth } from "../../contexts/AuthContext";
-import * as cognito from "../../cognito/";
+import { inputHandler } from "../../handlers/common";
+import { validateEmail } from "./validations";
+import * as webauthn from "../../webauthn/";
+import {
+  fido2RegisterComplete,
+  fido2RegisterInit,
+} from "../../services/credentials";
 
 const PasswordlessRegister = ({
   handlerUsername,
@@ -12,11 +17,29 @@ const PasswordlessRegister = ({
   username,
 }: CommonFormProps) => {
   const { classes } = useStyle();
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    try {
+      validateEmail(email);
+
+      const resInit = await fido2RegisterInit(username);
+      const publicKey = await webauthn.create(resInit);
+
+      const completeReqPayload = {
+        ...publicKey,
+        username: username,
+        email: email,
+      };
+      await fido2RegisterComplete(completeReqPayload);
+
+      handlerWhichLogin(Login.EmailVerification);
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   return (
@@ -28,6 +51,13 @@ const PasswordlessRegister = ({
           mb="lg"
           placeholder="Username"
           value={username}
+        />
+        <Input
+          onChange={inputHandler(setEmail)}
+          mb="lg"
+          placeholder="Email"
+          type="email"
+          value={email}
         />
         <Button type="submit" classNames={{ root: classes.button }}>
           Signup with passkey
