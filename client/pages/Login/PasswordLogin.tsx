@@ -1,11 +1,11 @@
 import { FormEvent, useState } from "react";
-import { Button, Input } from "@mantine/core";
+import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
-import { passwordAuthenticate } from "../../services/auth";
 import { useAuth } from "../../contexts/AuthContext";
+import * as cognito from "../../cognito/";
 
 const PasswordLogin = function ({
   handlerUsername,
@@ -21,7 +21,7 @@ const PasswordLogin = function ({
     event.preventDefault();
     //maybe add a curtain componet for loading or button loading
     try {
-      const user = await passwordAuthenticate(username, password);
+      const user = await cognito.authenticate(username, password, "PASSWORD");
       if (user) {
         login(user);
       }
@@ -51,7 +51,7 @@ const PasswordLogin = function ({
           Login with password
         </Button>
         <Button
-          onClick={() => handlerWhichLogin(Login.Passwordless)}
+          onClick={() => handlerWhichLogin(Login.LoginPasswordless)}
           classNames={{ root: classes.button }}
           variant="outline"
         >
@@ -60,6 +60,12 @@ const PasswordLogin = function ({
         <Button classNames={{ root: classes.button }} variant="outline">
           Login with magic link
         </Button>
+        <UnstyledButton
+          onClick={() => handlerWhichLogin(Login.RegisterPasswordless)}
+          className={classes.signupButton}
+        >
+          Don't have an account? <span className={classes.signup}>Sign up</span>
+        </UnstyledButton>
       </div>
     </form>
   );

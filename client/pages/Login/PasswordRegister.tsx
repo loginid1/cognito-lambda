@@ -1,26 +1,27 @@
 import { FormEvent, useState } from "react";
-import { Button, Input, Text, UnstyledButton } from "@mantine/core";
+import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
-import * as cognito from "../../cognito/";
-import { useAuth } from "../../contexts/AuthContext";
 import { CommonFormProps, Login } from "./types";
+import { inputHandler } from "../../handlers/common";
+import * as cognito from "../../cognito/";
 
-const PasswordlessLogin = function ({
+const PasswordRegister = ({
   handlerUsername,
   handlerWhichLogin,
   username,
-}: CommonFormProps) {
+}: CommonFormProps) => {
   const { classes } = useStyle();
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const user = await cognito.authenticate(username, "", "FIDO2");
+      const user = await cognito.signUp(username, email, password);
       if (user) {
-        login(user);
+        handlerWhichLogin(Login.EmailVerification);
       }
     } catch (e: any) {
       setError(e.message);
@@ -37,28 +38,40 @@ const PasswordlessLogin = function ({
           placeholder="Username"
           value={username}
         />
+        <Input
+          onChange={inputHandler(setEmail)}
+          mb="lg"
+          placeholder="Email"
+          type="email"
+          value={email}
+        />
+        <Input
+          onChange={inputHandler(setPassword)}
+          type="password"
+          mb="lg"
+          placeholder="Password"
+          value={password}
+        />
         <Button type="submit" classNames={{ root: classes.button }}>
-          Login with passkey
-        </Button>
-        <Button classNames={{ root: classes.button }} variant="outline">
-          Login with magic link
+          Signup with password
         </Button>
         <Button
-          onClick={() => handlerWhichLogin(Login.LoginPassword)}
+          onClick={() => handlerWhichLogin(Login.RegisterPasswordless)}
           classNames={{ root: classes.button }}
           variant="outline"
         >
-          Login with password
+          Signup with passkey
         </Button>
         <UnstyledButton
-          onClick={() => handlerWhichLogin(Login.RegisterPasswordless)}
+          onClick={() => handlerWhichLogin(Login.LoginPasswordless)}
           className={classes.signupButton}
         >
-          Don't have an account? <span className={classes.signup}>Sign up</span>
+          Already have an account?{" "}
+          <span className={classes.signup}>Sign in</span>
         </UnstyledButton>
       </div>
     </form>
   );
 };
 
-export default PasswordlessLogin;
+export default PasswordRegister;

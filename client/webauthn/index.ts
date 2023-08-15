@@ -14,8 +14,6 @@ export interface PublicKeyAttestationCredential {
 }
 
 export interface PublicKeyAssertionCredential {
-  username?: string;
-  session?: string;
   assertion_payload: {
     credential_id: Base64;
     client_data: Base64;

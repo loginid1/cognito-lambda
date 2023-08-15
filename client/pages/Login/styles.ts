@@ -45,6 +45,15 @@ export default createStyles((theme) => ({
     marginBottom: theme.spacing.sm,
     borderRadius: theme.radius.lg,
   },
+  signupButton: {
+    width: "100%",
+    textAlign: "center",
+    fontSize: "0.9rem",
+  },
+  signup: {
+    color: BUTTONS_COLOR,
+    fontWeight: "bold",
+  },
   footer: {
     display: "flex",
     justifyContent: "space-evenly",

@@ -7,6 +7,10 @@ export interface CommonFormProps {
 }
 
 export enum Login {
-  Passwordless = "PASSWORDLESS",
-  Password = "PASSWORD",
+  RegisterPasswordless = "REGISTER_PASSWORDLESS",
+  RegisterPassword = "REGISTER_PASSWORD",
+  LoginPasswordless = "LOGIN_PASSWORDLESS",
+  LoginPassword = "LOGIN_PASSWORD",
+  EmailVerification = "EMAIL_VERIFICATION",
+  CompleteRegistration = "COMPLETE_REGISTRATION",
 }

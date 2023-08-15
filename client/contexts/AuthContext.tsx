@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { User } from "./types";
-import { checkAuth } from "../services/user";
+import { CognitoUser } from "amazon-cognito-identity-js";
+import { getCurrentUser, getUserSession } from "../cognito/";
 
 export interface AuthContextProps {
-  user: User | null;
+  user: CognitoUser | null;
   isFetching: boolean;
-  login: (user: User) => void;
+  login: (user: CognitoUser) => void;
   logout: () => void;
 }
 
@@ -19,14 +19,17 @@ const defaultAuthContext: AuthContextProps = {
 const AuthContext = createContext<AuthContextProps>(defaultAuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<CognitoUser | null>(null);
   const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
     const call = async () => {
       try {
-        const response = await checkAuth();
-        setUser(response);
+        const user = getCurrentUser();
+        const session = await getUserSession(user);
+        if (session.isValid()) {
+          setUser(user);
+        }
       } catch (e) {
         setUser(null);
       } finally {
@@ -36,7 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     call();
   }, []);
 
-  const login = (user: User) => {
+  const login = (user: CognitoUser) => {
     setUser(user);
   };
 
