@@ -6,7 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { Credential, credentialList } from "../services/loginid";
+import { useAuth } from "../contexts/AuthContext";
+import { getUserIDToken } from "../cognito";
+import { Credential, credentialList } from "../services/credentials";
 
 //can be generic
 export const useRefFocus = (value: boolean): RefObject<HTMLInputElement> => {
@@ -34,11 +36,14 @@ export const useFetchResources = (): Resources => {
   const [passkeys, setPasskeys] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const resources = [credentialList()];
+        const token = await getUserIDToken(user);
+
+        const resources = [credentialList(token)];
         const fetched = await Promise.all(resources);
         const [fetchedCredentialsData] = fetched;
 
@@ -53,7 +58,7 @@ export const useFetchResources = (): Resources => {
       }
     };
     fetchResources();
-  }, []);
+  }, [user]);
 
   return { passkeys, setPasskeys, loading, error };
 };

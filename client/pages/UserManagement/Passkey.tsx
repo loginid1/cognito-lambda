@@ -3,8 +3,10 @@ import { Accordion, Input } from "@mantine/core";
 import { useRefFocus } from "../../hooks/common";
 import { EMPTY_PASSKEY_NAME } from "../../errors/";
 import { SmallIconButton } from "../../components/Button/";
-import { renameCredential } from "../../services/loginid";
+import { renameCredential } from "../../services/credentials";
 import { commonError } from "../../errors";
+import { getUserIDToken } from "../../cognito";
+import { useAuth } from "../../contexts/AuthContext";
 import EditIcon from "../../icons/Edit";
 import CloseIcon from "../../icons/CloseIcon";
 import PasskeyIcon from "../../icons/Passkey";
@@ -29,13 +31,19 @@ const Passkey = function ({
 }: PasskeyProps) {
   const { classes } = useStyles();
   const [error, setError] = useState("");
+  const { user } = useAuth();
   const inputRef = useRefFocus(shouldFocus);
 
   const handleOnBlur = async () => {
     try {
       if (name.length === 0) throw new Error(EMPTY_PASSKEY_NAME);
       setError("");
-      await renameCredential(id, name);
+
+      const token = await getUserIDToken(user);
+      //might need to handle this change better
+      //no await
+      renameCredential(id, name, token);
+
       handleFocus(null);
     } catch (e: any) {
       setError(commonError(e));

@@ -23,7 +23,11 @@ const PasswordRegister = ({
     try {
       validateEmail(email);
 
-      const user = await cognito.signUp(username, email, password);
+      const user = await cognito.signUp(
+        username.toLowerCase(),
+        email,
+        password
+      );
       if (user) {
         handlerWhichLogin(Login.EmailVerification);
       }

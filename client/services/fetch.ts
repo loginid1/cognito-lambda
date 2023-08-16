@@ -6,9 +6,10 @@ export const getCookieValue = (name: string): string => {
   return cookie.split("=")[1];
 };
 
-export const get = async <T>(url: string): Promise<T> => {
+export const get = async <T>(url: string, headers = {}): Promise<T> => {
   const response = await fetch(url, {
     method: "GET",
+    headers: { ...headers },
   });
 
   if (!response.ok) {
@@ -42,12 +43,4 @@ export const post = async <T>(
   }
 
   return await response.json();
-};
-
-export const postWithCRSF = async <T>(url: string, body: any) => {
-  const csrf = getCookieValue("csrf_access_token");
-  const response = post<T>(url, body, {
-    "X-CSRF-TOKEN": csrf,
-  });
-  return response;
 };

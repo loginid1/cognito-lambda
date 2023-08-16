@@ -9,12 +9,14 @@ import FAQModal from "./FAQModal";
 import ErrorText from "../../components/ErrorText";
 import { useFetchResources } from "../../hooks/common";
 import { commonError } from "../../errors";
+import { useAuth } from "../../contexts/AuthContext";
+import { getUserIDToken } from "../../cognito";
 import * as webauthn from "../../webauthn/";
 import {
   fido2CreateComplete,
   fido2CreateInit,
   revokeCredential,
-} from "../../services/loginid";
+} from "../../services/credentials";
 
 const Passkeys = function () {
   const { classes } = useStyles();
@@ -23,6 +25,7 @@ const Passkeys = function () {
   const [openedDeletePasskey, setOpenedDeletePasskey] = useState(false);
   const [openedFAQ, setOpenedFAQ] = useState(false);
   const [error, setError] = useState("");
+  const { user } = useAuth();
 
   const { passkeys, setPasskeys } = useFetchResources();
 
@@ -51,7 +54,10 @@ const Passkeys = function () {
   const handleDelete = async () => {
     try {
       if (!passkeyID) throw new Error("No passkey ID");
-      await revokeCredential(passkeyID);
+      const token = await getUserIDToken(user);
+      //no await
+      revokeCredential(passkeyID, token);
+
       const newData = passkeys.filter((passkey) => passkey.uuid !== passkeyID);
       setPasskeys(newData);
       setError("");
@@ -64,9 +70,11 @@ const Passkeys = function () {
 
   const handleAddPasskey = async () => {
     try {
-      const initRes = await fido2CreateInit();
+      const token = await getUserIDToken(user);
+      const initRes = await fido2CreateInit(token);
       const pulicKey = await webauthn.create(initRes);
-      const completeRes = await fido2CreateComplete(pulicKey);
+      const completeRes = await fido2CreateComplete(pulicKey, token);
+
       //add new passkey to the list
       if (completeRes) {
         const { credential } = completeRes;

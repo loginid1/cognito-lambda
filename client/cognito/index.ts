@@ -44,6 +44,13 @@ export const getUserSession = (
   });
 };
 
+export const getUserIDToken = async (
+  user: CognitoUser | null
+): Promise<string> => {
+  const session = await getUserSession(user);
+  return session.getIdToken().getJwtToken();
+};
+
 export const signUp = (
   username: string,
   email: string,
@@ -59,13 +66,19 @@ export const signUp = (
 
     attributeList.push(attributeEmail);
 
-    userPool.signUp(username, password, attributeList, [], (err, result) => {
-      if (err) {
-        rej(err);
-      } else {
-        res(result!.user);
+    userPool.signUp(
+      username.toLowerCase(),
+      password,
+      attributeList,
+      [],
+      (err, result) => {
+        if (err) {
+          rej(err);
+        } else {
+          res(result!.user);
+        }
       }
-    });
+    );
   });
 };
 
