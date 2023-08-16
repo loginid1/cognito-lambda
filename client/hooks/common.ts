@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserIDToken } from "../cognito";
+import { getPasskeysInfo, setPasskeysInfo } from "../storage/passkeys";
 import { Credential, credentialList } from "../services/credentials";
 
 //can be generic
@@ -33,7 +34,7 @@ interface Resources {
 //might want to have a better error handling method for each resource
 //if needed
 export const useFetchResources = (): Resources => {
-  const [passkeys, setPasskeys] = useState<Credential[]>([]);
+  const [passkeys, setPasskeys] = useState<Credential[]>(getPasskeysInfo());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { user } = useAuth();
@@ -48,6 +49,9 @@ export const useFetchResources = (): Resources => {
         const [fetchedCredentialsData] = fetched;
 
         const { credentials } = fetchedCredentialsData;
+
+        //set to local storage cache
+        setPasskeysInfo(credentials);
 
         setPasskeys(credentials);
         setLoading(false);
