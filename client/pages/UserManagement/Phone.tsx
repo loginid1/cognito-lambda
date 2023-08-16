@@ -3,26 +3,39 @@ import userStyle from "./styles";
 import EditIcon from "../../icons/Edit";
 import { SmallIconButton } from "../../components/Button/";
 import { BUTTONS_COLOR } from "../../environment";
+import { useAuth } from "../../contexts/AuthContext";
 
 const PhoneSection = function () {
   const { classes } = userStyle();
+  const { userAttributes } = useAuth();
   return (
     <div className={classes.wrapper}>
-      <Title mb="xs" order={4}>
+      <Title mb={userAttributes.phoneNumber ? "xs" : "lg"} order={4}>
         My phone number
       </Title>
-      <Text mb="md">
-        Your phone number is{" "}
-        <Text color={BUTTONS_COLOR} fw="bold" display="inline">
-          +1 853 *** *** 2341
+      {userAttributes.phoneNumber && (
+        <Text mb="md">
+          Your phone number is{" "}
+          <Text color={BUTTONS_COLOR} fw="bold" display="inline">
+            +1 853 *** *** 2341
+          </Text>
         </Text>
-      </Text>
-      <SmallIconButton
-        onClick={() => console.log("change me")}
-        leftIcon={<EditIcon fill="white" />}
-      >
-        Change my phone number
-      </SmallIconButton>
+      )}
+      {userAttributes.phoneNumber ? (
+        <SmallIconButton
+          onClick={() => console.log("change me")}
+          leftIcon={<EditIcon fill="white" />}
+        >
+          Change my phone number
+        </SmallIconButton>
+      ) : (
+        <SmallIconButton
+          onClick={() => console.log("change me")}
+          leftIcon={<EditIcon fill="white" />}
+        >
+          Add a phone number
+        </SmallIconButton>
+      )}
     </div>
   );
 };

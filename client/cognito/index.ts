@@ -51,6 +51,24 @@ export const getUserIDToken = async (
   return session.getIdToken().getJwtToken();
 };
 
+export const getUserAttributes = async (
+  user: CognitoUser | null
+): Promise<CognitoUserAttribute[]> => {
+  return new Promise((res, rej) => {
+    if (!user) {
+      rej("No user found");
+    } else {
+      user.getUserAttributes((err, attributes) => {
+        if (err) {
+          rej(err);
+        } else {
+          res(attributes || []);
+        }
+      });
+    }
+  });
+};
+
 export const signUp = (
   username: string,
   email: string,
