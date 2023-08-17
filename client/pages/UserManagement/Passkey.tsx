@@ -7,6 +7,7 @@ import { renameCredential } from "../../services/credentials";
 import { commonError } from "../../errors";
 import { getUserIDToken } from "../../cognito";
 import { useAuth } from "../../contexts/AuthContext";
+import { useConfig } from "../../contexts/ConfigContext";
 import EditIcon from "../../icons/Edit";
 import CloseIcon from "../../icons/CloseIcon";
 import PasskeyIcon from "../../icons/Passkey";
@@ -29,6 +30,7 @@ const Passkey = function ({
   handleRename,
   handleOpenModal,
 }: PasskeyProps) {
+  const { config } = useConfig();
   const { classes } = useStyles();
   const [error, setError] = useState("");
   const { user } = useAuth();
@@ -58,7 +60,7 @@ const Passkey = function ({
 
   return (
     <Accordion.Item value={id}>
-      <Accordion.Control icon={<PasskeyIcon />}>
+      <Accordion.Control icon={<PasskeyIcon fill={config.buttons_color} />}>
         {shouldFocus ? (
           <Input.Wrapper error={error}>
             <Input

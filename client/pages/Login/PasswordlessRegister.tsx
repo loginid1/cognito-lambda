@@ -5,6 +5,7 @@ import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
 import { validateEmail } from "./validations";
+import { useConfig } from "../../contexts/ConfigContext";
 import * as webauthn from "../../webauthn/";
 import {
   fido2RegisterComplete,
@@ -16,7 +17,8 @@ const PasswordlessRegister = ({
   handlerWhichLogin,
   username,
 }: CommonFormProps) => {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 

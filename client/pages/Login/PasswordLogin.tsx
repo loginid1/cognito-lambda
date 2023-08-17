@@ -5,6 +5,7 @@ import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
 import { useAuth } from "../../contexts/AuthContext";
+import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
 const PasswordLogin = function ({
@@ -12,7 +13,8 @@ const PasswordLogin = function ({
   handlerWhichLogin,
   username,
 }: CommonFormProps) {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { login } = useAuth();

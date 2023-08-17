@@ -1,13 +1,8 @@
-import { BUTTONS_COLOR } from "../environment/";
-
 interface Props {
   fill?: string;
 }
 
 const AddIcon = function ({ fill }: Props) {
-  if (!fill) {
-    fill = BUTTONS_COLOR;
-  }
   return (
     <svg width="20" height="20" viewBox="0 0 500 510">
       <g>

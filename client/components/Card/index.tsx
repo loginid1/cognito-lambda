@@ -1,11 +1,13 @@
 import useStyles from "./styles";
+import { useConfig } from "../../contexts/ConfigContext";
 
 interface CardProps {
   children: React.ReactNode;
 }
 
 const Card = function ({ children }: CardProps) {
-  const { classes } = useStyles();
+  const { config } = useConfig();
+  const { classes } = useStyles(config);
   return <div className={classes.root}>{children}</div>;
 };
 

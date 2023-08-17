@@ -2,10 +2,11 @@ import { Text, Title } from "@mantine/core";
 import userStyle from "./styles";
 import EditIcon from "../../icons/Edit";
 import { SmallIconButton } from "../../components/Button/";
-import { BUTTONS_COLOR } from "../../environment";
 import { useAuth } from "../../contexts/AuthContext";
+import { useConfig } from "../../contexts/ConfigContext";
 
 const PhoneSection = function () {
+  const { config } = useConfig();
   const { classes } = userStyle();
   const { userAttributes } = useAuth();
   return (
@@ -16,7 +17,7 @@ const PhoneSection = function () {
       {userAttributes.phoneNumber && (
         <Text mb="md">
           Your phone number is{" "}
-          <Text color={BUTTONS_COLOR} fw="bold" display="inline">
+          <Text color={config.buttons_color} fw="bold" display="inline">
             +1 853 *** *** 2341
           </Text>
         </Text>

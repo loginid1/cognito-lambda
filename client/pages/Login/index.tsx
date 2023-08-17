@@ -12,11 +12,11 @@ import PasswordRegister from "./PasswordRegister";
 import EmailVerification from "./EmailVerification";
 import RegisterComplete from "./RegisterComplete";
 import Footer from "./Footer";
-
-import { LOGIN_LOGO } from "../../environment/";
+import { useConfig } from "../../contexts/ConfigContext";
 
 const Login = function () {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   const [username, setUsername] = useState("");
   const [whichLogin, setWhichLogin] = useState(LoginEnum.LoginPasswordless);
 
@@ -93,7 +93,7 @@ const Login = function () {
       <Card>
         <Image
           classNames={{ root: classes.logo }}
-          src={LOGIN_LOGO}
+          src={config.login_logo}
           alt="Logo"
         />
         <Title className={classes.header} order={2}>

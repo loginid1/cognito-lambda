@@ -1,9 +1,11 @@
 import { Button, Text } from "@mantine/core";
 import useStyle from "./styles";
+import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
 
 const RegisterComplete = ({ handlerWhichLogin, username }: CommonFormProps) => {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   return (
     <div>
       <Text ta="center" mb="xl">

@@ -9,6 +9,7 @@ import FAQModal from "./FAQModal";
 import ErrorText from "../../components/ErrorText";
 import { useFetchResources } from "../../hooks/common";
 import { commonError } from "../../errors";
+import { useConfig } from "../../contexts/ConfigContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserIDToken } from "../../cognito";
 import * as webauthn from "../../webauthn/";
@@ -19,6 +20,7 @@ import {
 } from "../../services/credentials";
 
 const Passkeys = function () {
+  const { config } = useConfig();
   const { classes } = useStyles();
   const [passkeyID, setPasskeyID] = useState<string | null>(null);
   const [tempPasskeyID, setTempPasskeyID] = useState<string | null>(null);
@@ -117,12 +119,12 @@ const Passkeys = function () {
           mr="sm"
           variant="outline"
           size="sm"
-          leftIcon={<AddIcon />}
+          leftIcon={<AddIcon fill={config.buttons_color} />}
         >
           Add new passkey
         </Button>
         <ActionIcon onClick={() => setOpenedFAQ(true)} size="lg">
-          <FAQIcon />
+          <FAQIcon fill={config.buttons_color} />
         </ActionIcon>
       </div>
 

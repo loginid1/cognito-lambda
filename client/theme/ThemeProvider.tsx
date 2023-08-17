@@ -1,23 +1,29 @@
 import { MantineProvider, MantineThemeOverride } from "@mantine/core";
-
-import { BUTTONS_COLOR } from "../environment";
+import { useConfig } from "../contexts/ConfigContext";
 
 interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
+export const customTheme = {
+  //this is the primary color found for most of the buttons
+  primaryButtonColor: "#228BE6",
+};
+
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+  const { config } = useConfig();
   const theme: MantineThemeOverride = {
     components: {
       Button: {
         styles: (_, __, { variant }) => ({
           root: {
-            borderColor: BUTTONS_COLOR,
-            color: variant === "outline" ? BUTTONS_COLOR : undefined,
-            backgroundColor: variant === "outline" ? undefined : BUTTONS_COLOR,
+            borderColor: config.buttons_color,
+            color: variant === "outline" ? config.buttons_color : undefined,
+            backgroundColor:
+              variant === "outline" ? undefined : config.buttons_color,
             "&:hover": {
               backgroundColor:
-                variant === "outline" ? "transparent" : BUTTONS_COLOR,
+                variant === "outline" ? "transparent" : config.buttons_color,
               opacity: 0.8,
             },
           },
@@ -28,7 +34,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
         styles: {
           input: {
             ":focus": {
-              borderColor: BUTTONS_COLOR,
+              borderColor: config.buttons_color,
             },
           },
         },

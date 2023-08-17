@@ -8,8 +8,9 @@ import {
 } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserIDToken } from "../cognito";
-import { getPasskeysInfo, setPasskeysInfo } from "../storage/passkeys";
-import { Credential, credentialList } from "../services/credentials";
+import { PasskeysStorage } from "../storage/passkeys";
+import { credentialList } from "../services/credentials";
+import { Credential } from "../services/types";
 
 //can be generic
 export const useRefFocus = (value: boolean): RefObject<HTMLInputElement> => {
@@ -34,7 +35,9 @@ interface Resources {
 //might want to have a better error handling method for each resource
 //if needed
 export const useFetchResources = (): Resources => {
-  const [passkeys, setPasskeys] = useState<Credential[]>(getPasskeysInfo());
+  const [passkeys, setPasskeys] = useState<Credential[]>(
+    PasskeysStorage.get("[]")
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { user } = useAuth();
@@ -51,7 +54,7 @@ export const useFetchResources = (): Resources => {
         const { credentials } = fetchedCredentialsData;
 
         //set to local storage cache
-        setPasskeysInfo(credentials);
+        PasskeysStorage.set(credentials);
 
         setPasskeys(credentials);
         setLoading(false);

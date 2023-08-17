@@ -4,13 +4,15 @@ import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
+import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
 const EmailVerification = ({
   username,
   handlerWhichLogin,
 }: CommonFormProps) => {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 

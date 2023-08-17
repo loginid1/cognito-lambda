@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { CognitoUser } from "amazon-cognito-identity-js";
-import { clearPasskeysInfo } from "../storage/passkeys";
+import { PasskeysStorage } from "../storage/passkeys";
 import { getUserAttributes, getCurrentUser, getUserSession } from "../cognito/";
 
 export interface UserAttributes {
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(user);
         }
       } catch (e) {
-        clearPasskeysInfo();
+        PasskeysStorage.clear();
         setUser(null);
       } finally {
         setIsFetching(false);
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    clearPasskeysInfo();
+    PasskeysStorage.clear();
     setUser(null);
   };
 

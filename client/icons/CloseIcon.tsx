@@ -1,13 +1,8 @@
-import { BUTTONS_COLOR } from "../environment/";
-
 interface Props {
   fill?: string;
 }
 
 const CloseIcon = function ({ fill }: Props) {
-  if (!fill) {
-    fill = BUTTONS_COLOR;
-  }
   return (
     <svg
       width="20"

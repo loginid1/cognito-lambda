@@ -5,6 +5,7 @@ import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { inputHandler } from "../../handlers/common";
 import { validateEmail } from "./validations";
+import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
 const PasswordRegister = ({
@@ -12,7 +13,8 @@ const PasswordRegister = ({
   handlerWhichLogin,
   username,
 }: CommonFormProps) => {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");

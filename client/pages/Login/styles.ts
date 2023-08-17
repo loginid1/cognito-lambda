@@ -1,22 +1,7 @@
 import { createStyles } from "@mantine/core";
+import { Config } from "../../services/types";
 
-import {
-  BACKGROUND_COLOR,
-  BACKGROUND_IMAGE,
-  BUTTONS_COLOR,
-} from "../../environment/";
-
-export default createStyles((theme) => ({
-  wrapper: {
-    width: "100%",
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: `url(${BACKGROUND_IMAGE}) center/cover no-repeat, ${
-      BACKGROUND_COLOR || theme.colors.gray[4]
-    }`,
-  },
+export default createStyles((theme, { buttons_color }: Config) => ({
   innerWrapper: {
     width: 550,
     [theme.fn.smallerThan("md")]: {
@@ -29,7 +14,7 @@ export default createStyles((theme) => ({
     },
   },
   logo: {
-    maxWidth: 350,
+    maxWidth: 275,
     margin: `0 auto ${theme.spacing.xl}`,
   },
   header: {
@@ -51,7 +36,7 @@ export default createStyles((theme) => ({
     fontSize: "0.9rem",
   },
   signup: {
-    color: BUTTONS_COLOR,
+    color: buttons_color,
     fontWeight: "bold",
   },
   footer: {

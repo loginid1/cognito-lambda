@@ -1,9 +1,10 @@
 import { FormEvent, useState } from "react";
-import { Button, Input, Text, UnstyledButton } from "@mantine/core";
+import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import * as cognito from "../../cognito/";
 import { useAuth } from "../../contexts/AuthContext";
+import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
 
 const PasswordlessLogin = function ({
@@ -11,7 +12,8 @@ const PasswordlessLogin = function ({
   handlerWhichLogin,
   username,
 }: CommonFormProps) {
-  const { classes } = useStyle();
+  const { config } = useConfig();
+  const { classes } = useStyle(config);
   const [error, setError] = useState("");
   const { login } = useAuth();
 
