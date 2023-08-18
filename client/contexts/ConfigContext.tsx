@@ -47,7 +47,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
         const config = defaultedConfig(_config);
 
         //cache config
-        //ConfigStorage.set(config);
+        ConfigStorage.set(config);
 
         setConfig(config);
       } catch (e: any) {

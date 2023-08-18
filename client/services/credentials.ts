@@ -1,9 +1,27 @@
 import { get, post } from "./fetch";
 import { Config, CredentialData, CredentialsData } from "./types";
 
-import { CREDENTIALS_BASE_URL as BASE_URL } from "../environment/";
+import configURL from "../config/main.json";
 
+//this is needed because a new config file will be placed in the build folder and is unique to each deployment
+let BASE_URL = "";
+const initalLoad = async () => {
+  await fetch(configURL)
+    .then((res) => {
+      if (res.ok) {
+        return res.json();
+      }
+      throw new Error("Failed to fetch config");
+    })
+    .then((config) => {
+      console.log(config);
+      BASE_URL = config.CREDENTIALS_BASE_URL;
+    });
+};
+
+//this should be the first thing to be called on page load (or close to it)
 export const getConfig = async () => {
+  await initalLoad();
   return await get<Config>(`${BASE_URL}/config`);
 };
 

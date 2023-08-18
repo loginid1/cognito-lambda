@@ -10,12 +10,23 @@ import {
 } from "amazon-cognito-identity-js";
 import * as webauthn from "../webauthn/";
 
-import { COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID } from "../environment/";
+import configURL from "../config/main.json";
 
-export const userPool = new CognitoUserPool({
-  UserPoolId: COGNITO_USER_POOL_ID,
-  ClientId: COGNITO_CLIENT_ID,
-});
+//this is needed because a new config file will be placed in the build folder and is unique to each deployment
+let userPool: CognitoUserPool;
+fetch(configURL)
+  .then((res) => {
+    if (res.ok) {
+      return res.json();
+    }
+    throw new Error("Failed to fetch config");
+  })
+  .then((config) => {
+    userPool = new CognitoUserPool({
+      UserPoolId: config.COGNITO_USER_POOL_ID,
+      ClientId: config.COGNITO_CLIENT_ID,
+    });
+  });
 
 export const getCurrentUser = (): CognitoUser | null => {
   const user = userPool.getCurrentUser();
@@ -202,10 +213,47 @@ export const authenticate = (
       },
     };
 
+    //still in development do not use
+    const callbackphoneOTPObj: IAuthenticationCallback = {
+      customChallenge: async function (challengParams: any) {
+        //dummy response to select FIDO2 authentication
+        const clientMetadata = {
+          authentication_type: "PHONE_OTP",
+        };
+        if (challengParams?.challenge === "AUTH_PARAMS") {
+          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
+          return;
+        }
+
+        console.log(challengParams);
+
+        user.sendCustomChallengeAnswer(
+          "123456", //OTP code"
+          this,
+          clientMetadata
+        );
+      },
+
+      onSuccess: function (_) {
+        console.log(_);
+        res(user);
+      },
+
+      onFailure: function (err) {
+        rej(err);
+      },
+    };
+
     switch (type) {
       case "FIDO2": {
         user.setAuthenticationFlowType("CUSTOM_AUTH");
         user.initiateAuth(authenticationDetails, callbackObj);
+        break;
+      }
+
+      case "PHONE_OTP": {
+        user.setAuthenticationFlowType("CUSTOM_AUTH");
+        user.initiateAuth(authenticationDetails, callbackphoneOTPObj);
         break;
       }
 

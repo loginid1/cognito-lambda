@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "dev": "parcel ./client/index.html --open",
-    "build": "parcel build ./views/index.pug ./views/home.pug --public-url /",
+    "build": "parcel build ./client/index.html --no-scope-hoist",
     "heroku-postbuild": "npm run build"
   },
   "keywords": [],
