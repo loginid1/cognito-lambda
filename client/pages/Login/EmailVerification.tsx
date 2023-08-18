@@ -19,7 +19,7 @@ const EmailVerification = ({
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      await cognito.confirmSignUp(username, code);
+      await cognito.confirmSignUp(username.toLowerCase(), code);
       handlerWhichLogin(Login.CompleteRegistration);
     } catch (e: any) {
       setError(e.message);

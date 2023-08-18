@@ -14,6 +14,7 @@ export interface AuthContextProps {
   user: CognitoUser | null;
   userAttributes: UserAttributes;
   isFetching: boolean;
+  getLatestAttributes: () => Promise<void>;
   login: (user: CognitoUser) => void;
   logout: () => void;
 }
@@ -22,6 +23,7 @@ const defaultAuthContext: AuthContextProps = {
   user: null,
   userAttributes: {},
   isFetching: true,
+  getLatestAttributes: async () => {},
   login: () => {},
   logout: () => {},
 };
@@ -33,6 +35,9 @@ const findUserAttributes = async (user: CognitoUser | null) => {
   const userAttributes = attributes.reduce((acc, { Name, Value }) => {
     if (Name === "sub" || Name === "email") {
       acc[Name] = Value;
+    }
+    if (Name === "phone_number") {
+      acc.phoneNumber = Value;
     }
     return acc;
   }, {} as UserAttributes);
@@ -76,9 +81,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const getLatestAttributes = async () => {
+    try {
+      const attributes = await findUserAttributes(user);
+      setUserAttributes(attributes);
+    } catch (e: any) {
+      console.log(e);
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, userAttributes, isFetching, login, logout }}
+      value={{
+        getLatestAttributes,
+        user,
+        userAttributes,
+        isFetching,
+        login,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

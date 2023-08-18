@@ -31,7 +31,7 @@ const Passkey = function ({
   handleOpenModal,
 }: PasskeyProps) {
   const { config } = useConfig();
-  const { classes } = useStyles();
+  const { classes } = useStyles(config);
   const [error, setError] = useState("");
   const { user } = useAuth();
   const inputRef = useRefFocus(shouldFocus);

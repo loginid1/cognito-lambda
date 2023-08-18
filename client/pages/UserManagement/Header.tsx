@@ -3,7 +3,7 @@ import userStyle from "./styles";
 import { useAuth } from "../../contexts/AuthContext";
 
 const UserManagement = function () {
-  const { classes } = userStyle();
+  const { classes } = userStyle({});
   const { userAttributes } = useAuth();
   return (
     <header className={classes.wrapper}>

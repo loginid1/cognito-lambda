@@ -8,7 +8,7 @@ interface Props {
 }
 
 const DeleteModal = function ({ onClose, opened }: Props) {
-  const { classes } = useStyles();
+  const { classes } = useStyles({});
   return (
     <Modal onClose={onClose} opened={opened} centered={true}>
       <div className={classes.modalFAQWrapper}>

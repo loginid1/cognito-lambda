@@ -69,6 +69,21 @@ export const getUserAttributes = async (
   });
 };
 
+export const updateUserAttributes = async (
+  user: CognitoUser | null,
+  attributes: CognitoUserAttribute[]
+) => {
+  return new Promise((res, rej) => {
+    user?.updateAttributes(attributes, (err, result) => {
+      if (err) {
+        rej(err);
+      } else {
+        res(result);
+      }
+    });
+  });
+};
+
 export const signUp = (
   username: string,
   email: string,
@@ -140,15 +155,30 @@ export const authenticate = (
 
     const callbackObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
+        //dummy response to select FIDO2 authentication
+        const clientMetadata = {
+          authentication_type: "FIDO2",
+        };
+        if (challengParams?.challenge === "AUTH_PARAMS") {
+          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
+          return;
+        }
+
+        //FIDO2 authentication
         const publicKey = JSON.parse(challengParams.public_key);
         const result = await webauthn.get(publicKey);
         const assertion = {
           ...result.assertion_payload,
         };
-        user.sendCustomChallengeAnswer(JSON.stringify({ assertion }), this);
+        user.sendCustomChallengeAnswer(
+          JSON.stringify({ assertion }),
+          this,
+          clientMetadata
+        );
       },
 
       onSuccess: function (_) {
+        console.log(_);
         res(user);
       },
 

@@ -20,7 +20,11 @@ const PasswordlessLogin = function ({
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const user = await cognito.authenticate(username, "", "FIDO2");
+      const user = await cognito.authenticate(
+        username.toLowerCase(),
+        "",
+        "FIDO2"
+      );
       if (user) {
         login(user);
       }

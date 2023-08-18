@@ -14,7 +14,7 @@ const DeleteModal = function ({
   opened,
   passkeyName,
 }: Props) {
-  const { classes } = useStyles();
+  const { classes } = useStyles({});
   //passkeyName can only be 50 characters long
   passkeyName = passkeyName || "this";
   if (passkeyName.length > 30) {

@@ -21,7 +21,7 @@ import {
 
 const Passkeys = function () {
   const { config } = useConfig();
-  const { classes } = useStyles();
+  const { classes } = useStyles(config);
   const [passkeyID, setPasskeyID] = useState<string | null>(null);
   const [tempPasskeyID, setTempPasskeyID] = useState<string | null>(null);
   const [openedDeletePasskey, setOpenedDeletePasskey] = useState(false);
