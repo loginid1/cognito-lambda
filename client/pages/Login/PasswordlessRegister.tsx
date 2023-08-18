@@ -3,7 +3,6 @@ import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
-import { inputHandler } from "../../handlers/common";
 import { validateEmail } from "./validations";
 import { useConfig } from "../../contexts/ConfigContext";
 import * as webauthn from "../../webauthn/";
@@ -13,13 +12,12 @@ import {
 } from "../../services/credentials";
 
 const PasswordlessRegister = ({
-  handlerUsername,
+  handlerEmail,
   handlerWhichLogin,
-  username,
+  email,
 }: CommonFormProps) => {
   const { config } = useConfig();
   const { classes } = useStyle(config);
-  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -28,12 +26,12 @@ const PasswordlessRegister = ({
     try {
       validateEmail(email);
 
-      const resInit = await fido2RegisterInit(username);
+      const resInit = await fido2RegisterInit(email);
       const publicKey = await webauthn.create(resInit);
 
       const completeReqPayload = {
         ...publicKey,
-        username: username,
+        username: email,
         email: email,
       };
       await fido2RegisterComplete(completeReqPayload);
@@ -49,13 +47,7 @@ const PasswordlessRegister = ({
       <div className={classes.buttonWrapper}>
         {error && <ErrorText>{error}</ErrorText>}
         <Input
-          onChange={handlerUsername}
-          mb="lg"
-          placeholder="Username"
-          value={username}
-        />
-        <Input
-          onChange={inputHandler(setEmail)}
+          onChange={handlerEmail}
           mb="lg"
           placeholder="Email"
           type="email"

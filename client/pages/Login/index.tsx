@@ -17,10 +17,10 @@ import { useConfig } from "../../contexts/ConfigContext";
 const Login = function () {
   const { config } = useConfig();
   const { classes } = useStyle(config);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [whichLogin, setWhichLogin] = useState(LoginEnum.LoginPasswordless);
 
-  const handlerUsername = inputHandler(setUsername);
+  const handlerEmail = inputHandler(setEmail);
   const handlerWhichLogin = (value: LoginEnum) => {
     return setWhichLogin(value);
   };
@@ -30,9 +30,9 @@ const Login = function () {
     case LoginEnum.LoginPasswordless:
       Form = (
         <PasswordlessLogin
-          handlerUsername={handlerUsername}
+          handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
-          username={username}
+          email={email}
         />
       );
       break;
@@ -40,9 +40,9 @@ const Login = function () {
     case LoginEnum.LoginPassword:
       Form = (
         <PasswordLogin
-          handlerUsername={handlerUsername}
+          handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
-          username={username}
+          email={email}
         />
       );
       break;
@@ -50,9 +50,9 @@ const Login = function () {
     case LoginEnum.RegisterPasswordless:
       Form = (
         <PasswordlessRegister
-          handlerUsername={handlerUsername}
+          handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
-          username={username}
+          email={email}
         />
       );
       break;
@@ -60,9 +60,9 @@ const Login = function () {
     case LoginEnum.RegisterPassword:
       Form = (
         <PasswordRegister
-          handlerUsername={handlerUsername}
+          handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
-          username={username}
+          email={email}
         />
       );
       break;
@@ -70,9 +70,9 @@ const Login = function () {
     case LoginEnum.EmailVerification:
       Form = (
         <EmailVerification
-          handlerUsername={handlerUsername}
+          handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
-          username={username}
+          email={email}
         />
       );
       break;
@@ -80,9 +80,9 @@ const Login = function () {
     case LoginEnum.CompleteRegistration:
       Form = (
         <RegisterComplete
-          handlerUsername={handlerUsername}
+          handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
-          username={username}
+          email={email}
         />
       );
       break;

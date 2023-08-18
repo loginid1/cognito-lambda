@@ -3,13 +3,13 @@ import useStyle from "./styles";
 import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
 
-const RegisterComplete = ({ handlerWhichLogin, username }: CommonFormProps) => {
+const RegisterComplete = ({ handlerWhichLogin, email }: CommonFormProps) => {
   const { config } = useConfig();
   const { classes } = useStyle(config);
   return (
     <div>
       <Text ta="center" mb="xl">
-        <span className={classes.signup}>{username}</span> is fully registered!
+        <span className={classes.signup}>{email}</span> is fully registered!
       </Text>
       <div className={classes.buttonWrapper}>
         <Button

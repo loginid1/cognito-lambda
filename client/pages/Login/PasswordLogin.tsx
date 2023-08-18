@@ -9,9 +9,9 @@ import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
 const PasswordLogin = function ({
-  handlerUsername,
+  handlerEmail,
   handlerWhichLogin,
-  username,
+  email,
 }: CommonFormProps) {
   const { config } = useConfig();
   const { classes } = useStyle(config);
@@ -23,7 +23,7 @@ const PasswordLogin = function ({
     event.preventDefault();
     //maybe add a curtain componet for loading or button loading
     try {
-      const user = await cognito.authenticate(username, password, "PASSWORD");
+      const user = await cognito.authenticate(email, password, "PASSWORD");
       if (user) {
         login(user);
       }
@@ -37,10 +37,11 @@ const PasswordLogin = function ({
       <div className={classes.buttonWrapper}>
         {error && <ErrorText>{error}</ErrorText>}
         <Input
-          onChange={handlerUsername}
+          onChange={handlerEmail}
           mb="lg"
           placeholder="Username"
-          value={username}
+          type="email"
+          value={email}
         />
         <Input
           onChange={inputHandler(setPassword)}

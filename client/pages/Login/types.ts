@@ -1,9 +1,9 @@
 import { ChangeEvent } from "react";
 
 export interface CommonFormProps {
-  handlerUsername: (event: ChangeEvent<HTMLInputElement>) => void;
+  handlerEmail: (event: ChangeEvent<HTMLInputElement>) => void;
   handlerWhichLogin: (value: Login) => void;
-  username: string;
+  email: string;
 }
 
 export enum Login {

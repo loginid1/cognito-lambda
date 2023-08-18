@@ -7,10 +7,7 @@ import { inputHandler } from "../../handlers/common";
 import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
-const EmailVerification = ({
-  username,
-  handlerWhichLogin,
-}: CommonFormProps) => {
+const EmailVerification = ({ email, handlerWhichLogin }: CommonFormProps) => {
   const { config } = useConfig();
   const { classes } = useStyle(config);
   const [code, setCode] = useState("");
@@ -19,7 +16,7 @@ const EmailVerification = ({
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      await cognito.confirmSignUp(username.toLowerCase(), code);
+      await cognito.confirmSignUp(email.toLowerCase(), code);
       handlerWhichLogin(Login.CompleteRegistration);
     } catch (e: any) {
       setError(e.message);

@@ -9,14 +9,13 @@ import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
 const PasswordRegister = ({
-  handlerUsername,
+  handlerEmail,
   handlerWhichLogin,
-  username,
+  email,
 }: CommonFormProps) => {
   const { config } = useConfig();
   const { classes } = useStyle(config);
   const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -25,7 +24,7 @@ const PasswordRegister = ({
     try {
       validateEmail(email);
 
-      const user = await cognito.signUp(username, email, password);
+      const user = await cognito.signUp(email, email, password);
       if (user) {
         handlerWhichLogin(Login.EmailVerification);
       }
@@ -39,13 +38,7 @@ const PasswordRegister = ({
       <div className={classes.buttonWrapper}>
         {error && <ErrorText>{error}</ErrorText>}
         <Input
-          onChange={handlerUsername}
-          mb="lg"
-          placeholder="Username"
-          value={username}
-        />
-        <Input
-          onChange={inputHandler(setEmail)}
+          onChange={handlerEmail}
           mb="lg"
           placeholder="Email"
           type="email"

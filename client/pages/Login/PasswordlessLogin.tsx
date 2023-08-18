@@ -8,9 +8,9 @@ import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
 
 const PasswordlessLogin = function ({
-  handlerUsername,
+  handlerEmail,
   handlerWhichLogin,
-  username,
+  email,
 }: CommonFormProps) {
   const { config } = useConfig();
   const { classes } = useStyle(config);
@@ -20,11 +20,7 @@ const PasswordlessLogin = function ({
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const user = await cognito.authenticate(
-        username.toLowerCase(),
-        "",
-        "FIDO2"
-      );
+      const user = await cognito.authenticate(email.toLowerCase(), "", "FIDO2");
       if (user) {
         login(user);
       }
@@ -38,10 +34,11 @@ const PasswordlessLogin = function ({
       <div className={classes.buttonWrapper}>
         {error && <ErrorText>{error}</ErrorText>}
         <Input
-          onChange={handlerUsername}
+          onChange={handlerEmail}
           mb="lg"
-          placeholder="Username"
-          value={username}
+          placeholder="Email"
+          type="email"
+          value={email}
         />
         <Button type="submit" classNames={{ root: classes.button }}>
           Login with passkey
