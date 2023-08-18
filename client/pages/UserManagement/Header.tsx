@@ -10,9 +10,7 @@ const UserManagement = function () {
       <Title mb="xs" order={2}>
         Manage account:
       </Title>
-      <Text>
-        {userAttributes.username} ({userAttributes.email})
-      </Text>
+      <Text>{userAttributes.email}</Text>
     </header>
   );
 };
