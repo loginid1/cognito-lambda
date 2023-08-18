@@ -84,6 +84,21 @@ export const updateUserAttributes = async (
   });
 };
 
+//is global sign out
+export const signOutUser = (user: CognitoUser | null) => {
+  return new Promise((res, rej) => {
+    user?.globalSignOut({
+      onSuccess(msg) {
+        console.log(msg);
+        res(msg);
+      },
+      onFailure(err) {
+        rej(err);
+      },
+    });
+  });
+};
+
 export const signUp = (
   username: string,
   email: string,

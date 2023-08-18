@@ -83,6 +83,11 @@ export default createStyles((theme, config: Config) => ({
       marginBottom: theme.spacing.xl,
     },
   },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   deleteButton: {
     backgroundColor: theme.colors.red[6],
     borderColor: theme.colors.red[6],
