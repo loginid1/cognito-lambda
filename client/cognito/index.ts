@@ -14,19 +14,21 @@ import configURL from "../config/main.json";
 
 //this is needed because a new config file will be placed in the build folder and is unique to each deployment
 let userPool: CognitoUserPool;
-fetch(configURL)
-  .then((res) => {
-    if (res.ok) {
-      return res.json();
-    }
-    throw new Error("Failed to fetch config");
-  })
-  .then((config) => {
-    userPool = new CognitoUserPool({
-      UserPoolId: config.COGNITO_USER_POOL_ID,
-      ClientId: config.COGNITO_CLIENT_ID,
+export const initalLoad = async () => {
+  return fetch(configURL)
+    .then((res) => {
+      if (res.ok) {
+        return res.json();
+      }
+      throw new Error("Failed to fetch config");
+    })
+    .then((config) => {
+      userPool = new CognitoUserPool({
+        UserPoolId: config.COGNITO_USER_POOL_ID,
+        ClientId: config.COGNITO_CLIENT_ID,
+      });
     });
-  });
+};
 
 export const getCurrentUser = (): CognitoUser | null => {
   const user = userPool.getCurrentUser();

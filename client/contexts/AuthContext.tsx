@@ -5,6 +5,7 @@ import {
   getUserAttributes,
   getCurrentUser,
   getUserSession,
+  initalLoad,
   signOutUser,
 } from "../cognito/";
 
@@ -58,6 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const call = async () => {
       try {
+        await initalLoad();
         const user = getCurrentUser();
         const session = await getUserSession(user);
         if (session.isValid()) {

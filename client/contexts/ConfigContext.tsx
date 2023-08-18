@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import { customTheme } from "../theme/ThemeProvider";
-import { getConfig } from "../services/credentials";
+import { initalLoad, getConfig } from "../services/credentials";
 import { Config } from "../services/types";
 import { ConfigStorage } from "../storage/config";
 
@@ -43,6 +43,7 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
+        await initalLoad();
         const _config = await getConfig();
         const config = defaultedConfig(_config);
 
