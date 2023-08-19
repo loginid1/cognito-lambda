@@ -38,6 +38,7 @@ FIDO2_CREATE_COMPLETE_PATH = "/fido2/create/complete"
 CREDENTIALS_LIST_PATH = "/credentials/list"
 CREDENTIALS_RENAME_PATH = "/credentials/rename"
 CREDENTIALS_REVOKE_PATH = "/credentials/revoke"
+CONFIG_PATH = "/config"
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
@@ -54,7 +55,13 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     try:
         claims = {}
-        if path is not FIDO2_REGISTER_INIT_PATH or path is not FIDO2_REGISTER_COMPLETE_PATH:
+        paths = [
+            FIDO2_REGISTER_INIT_PATH,
+            FIDO2_REGISTER_COMPLETE_PATH,
+            CONFIG_PATH,
+        ]
+
+        if path not in paths:
             request_context = event.get("requestContext")
             if request_context is None:
                 raise Exception("requestContext is missing")
@@ -67,8 +74,33 @@ def lambda_handler(event: dict, _: dict) -> dict:
                 }
                 return response
 
+        if path == CONFIG_PATH:
+            # style config vars
+            PAGE_BACKGROUND_COLOR = environ.get("PAGE_BACKGROUND_COLOR") or ""
+            PAGE_BACKGROUND_IMAGE = environ.get("PAGE_BACKGROUND_IMAGE") or ""
+            BACKGROUND_COLOR = environ.get("BACKGROUND_COLOR") or ""
+            BACKGROUND_IMAGE = environ.get("BACKGROUND_IMAGE") or ""
+            BUTTONS_COLOR = environ.get("BUTTONS_COLOR") or ""
+            LOGIN_LOGO = environ.get("LOGIN_LOGO") or ""
+            COMPANY_NAME = environ.get("COMPANY_NAME") or ""
 
-        if path == FIDO2_REGISTER_INIT_PATH:
+            response = {
+                "page_background_color": PAGE_BACKGROUND_COLOR,
+                "page_background_image": PAGE_BACKGROUND_IMAGE,
+                "background_color": BACKGROUND_COLOR,
+                "background_image": BACKGROUND_IMAGE,
+                "buttons_color": BUTTONS_COLOR,
+                "login_logo": LOGIN_LOGO,
+                "company_name": COMPANY_NAME,
+            }
+
+            return {
+                "statusCode": 200,
+                "headers": headers,
+                "body": json.dumps(response),
+            }
+
+        elif path == FIDO2_REGISTER_INIT_PATH:
             # get username from request body
             username, = parse_json(body, "username")
             # lower case username or make it empty string
@@ -129,7 +161,16 @@ def lambda_handler(event: dict, _: dict) -> dict:
         elif path == FIDO2_CREATE_INIT_PATH:
             username = claims["cognito:username"]
 
-            user = lid.get_user(username)
+            user = {}
+            try:
+                user = lid.get_user(username)
+            except LoginIDError as e:
+                # check if user not found
+                if e.status_code == 404 and e.error_code == "user_not_found":
+                    user = lid.add_user_without_credentials(username)
+                else:
+                    raise e
+
             loginid_user_id = user["id"]
 
             init_response = lid.force_fido2_credential_init(loginid_user_id)

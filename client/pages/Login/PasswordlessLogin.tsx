@@ -40,7 +40,7 @@ const PasswordlessLogin = function ({
           type="email"
           value={email}
         />
-        <Button type="submit" classNames={{ root: classes.button }}>
+        <Button type="submit" size="md" classNames={{ root: classes.button }}>
           Login with passkey
         </Button>
         <Button classNames={{ root: classes.button }} variant="outline">

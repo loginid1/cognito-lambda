@@ -31,6 +31,10 @@ const defaultedConfig = (config: Config) => {
     const logo = new URL("../images/loginid.svg", import.meta.url).toString();
     config.login_logo = logo;
   }
+
+  if (!config?.company_name) {
+    config.company_name = "LoginID";
+  }
   return config;
 };
 

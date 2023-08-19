@@ -22,4 +22,5 @@ export interface Config {
   background_image?: string;
   buttons_color?: string;
   login_logo?: string;
+  company_name?: string;
 }

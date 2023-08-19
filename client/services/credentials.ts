@@ -14,7 +14,6 @@ export const initalLoad = async () => {
       throw new Error("Failed to fetch config");
     })
     .then((config) => {
-      console.log(config);
       BASE_URL = config.CREDENTIALS_BASE_URL;
     });
 };

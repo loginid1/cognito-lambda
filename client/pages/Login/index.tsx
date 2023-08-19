@@ -97,7 +97,7 @@ const Login = function () {
           alt="Logo"
         />
         <Title className={classes.header} order={2}>
-          Unified Technology Industries
+          {config?.company_name}
         </Title>
         {Form}
         <Footer />

@@ -53,7 +53,7 @@ const PasswordlessRegister = ({
           type="email"
           value={email}
         />
-        <Button type="submit" classNames={{ root: classes.button }}>
+        <Button type="submit" size="md" classNames={{ root: classes.button }}>
           Signup with passkey
         </Button>
         <Button

@@ -39,7 +39,7 @@ const PasswordRegister = ({
         {error && <ErrorText>{error}</ErrorText>}
         <Input
           onChange={handlerEmail}
-          mb="lg"
+          mb="5px"
           placeholder="Email"
           type="email"
           value={email}

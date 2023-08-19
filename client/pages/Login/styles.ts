@@ -27,10 +27,11 @@ export default createStyles((theme, { buttons_color }: Config) => ({
   },
   button: {
     width: "100%",
-    marginBottom: theme.spacing.sm,
-    borderRadius: theme.radius.lg,
+    marginBottom: "5px",
+    borderRadius: theme.radius.md,
   },
   signupButton: {
+    marginTop: theme.spacing.lg,
     width: "100%",
     textAlign: "center",
     fontSize: "0.9rem",

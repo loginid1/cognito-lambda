@@ -38,7 +38,7 @@ const PasswordLogin = function ({
         {error && <ErrorText>{error}</ErrorText>}
         <Input
           onChange={handlerEmail}
-          mb="lg"
+          mb="5px"
           placeholder="Username"
           type="email"
           value={email}
