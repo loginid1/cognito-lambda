@@ -1,7 +1,16 @@
+//replace every character with * except for the following exceptions:
+//1. If the first character is + replace it with empty string
+//2. Keep the remaining 4 digits at the end
 export const maskPhoneNumber = (phoneNumber: string) => {
-  //keep the first 4 digits and  last 2 digits but replace the rest with *
-  //here is an exmaple: 1234567890 => 1234******90
-  return phoneNumber.replace(/.(?=.{2})/g, "*");
+  return phoneNumber.replace(/./g, (char, index) => {
+    if (index === 0) {
+      return "";
+    } else if (index > phoneNumber.length - 5) {
+      return char;
+    } else {
+      return "*";
+    }
+  });
 };
 
 //replace any character that is not a number with empty string

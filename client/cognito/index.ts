@@ -97,6 +97,21 @@ export const updateUserAttributes = async (
   });
 };
 
+export const deleteUserAttributes = async (
+  user: CognitoUser | null,
+  attributes: string[]
+) => {
+  return new Promise((res, rej) => {
+    user?.deleteAttributes(attributes, (err, result) => {
+      if (err) {
+        rej(err);
+      } else {
+        res(result);
+      }
+    });
+  });
+};
+
 //is global sign out
 export const signOutUser = (user: CognitoUser | null) => {
   return new Promise((res, rej) => {

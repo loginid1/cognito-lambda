@@ -15,6 +15,10 @@ export interface CredentialData {
   credential: Credential;
 }
 
+export interface CredentialPhoneInitResponse {
+  credential_uuid: string;
+}
+
 export interface Config {
   page_background_color?: string;
   page_background_image?: string;

@@ -4,6 +4,7 @@ import re
 import random
 import string
 import secrets
+import requests
 
 from botocore.exceptions import ClientError
 from os import environ
@@ -35,9 +36,14 @@ FIDO2_REGISTER_INIT_PATH = "/fido2/register/init"
 FIDO2_REGISTER_COMPLETE_PATH = "/fido2/register/complete"
 FIDO2_CREATE_INIT_PATH = "/fido2/create/init"
 FIDO2_CREATE_COMPLETE_PATH = "/fido2/create/complete"
+
+CREDENTIALS_PHONE_INIT_PATH = "/credentials/phone/init"
+CREDENTIALS_PHONE_COMPLETE_PATH = "/credentials/phone/complete"
+
 CREDENTIALS_LIST_PATH = "/credentials/list"
 CREDENTIALS_RENAME_PATH = "/credentials/rename"
 CREDENTIALS_REVOKE_PATH = "/credentials/revoke"
+
 CONFIG_PATH = "/config"
 
 
@@ -65,7 +71,8 @@ def lambda_handler(event: dict, _: dict) -> dict:
             request_context = event.get("requestContext")
             if request_context is None:
                 raise Exception("requestContext is missing")
-            claims = request_context.get("authorizer").get("claims")
+            authorizer = request_context.get("authorizer") or {}
+            claims = authorizer.get("claims")
             if claims is None:
                 response = {
                     "statusCode": 401,
@@ -244,6 +251,70 @@ def lambda_handler(event: dict, _: dict) -> dict:
             }
             return response
 
+        elif path == CREDENTIALS_PHONE_INIT_PATH:
+            username = claims["cognito:username"]
+            phone_number, delivery_mode = parse_json(body, "phone_number", "delivery_mode")
+
+            # make http request to loginid api
+            url = BASE_URL + "/api/native/credentials/phone/init/force"
+            request_body = {
+                "client_id": CLIENT_ID,
+                "username": username,
+                "phone_number": phone_number,
+                "delivery_mode": delivery_mode,
+            }
+
+            lid_response = {}
+            try: 
+                token = lid.generate_service_token("credentials.force_add")
+                lid_response = loginid_raw_request(url, request_body, token)
+            except LoginIDError as e:
+                # check if user not found
+                if e.status_code == 404 and e.error_code == "user_not_found":
+                    user = lid.add_user_without_credentials(username)
+                    token = lid.generate_service_token("credentials.force_add")
+                    lid_response = loginid_raw_request(url, request_body, token)
+                else:
+                    raise e
+
+            response = {
+                "statusCode": lid_response.status_code,
+                "headers": headers,
+                "body": lid_response.text
+            }
+            return response
+
+        elif path == CREDENTIALS_PHONE_COMPLETE_PATH:
+            username = claims["cognito:username"]
+            credential_uuid, phone_number, otp = parse_json(
+                body,
+                "credential_uuid",
+                "phone_number",
+                "otp",
+            )
+
+            # make http request to loginid api
+            url = BASE_URL + "/api/native/credentials/phone/complete"
+            request_body = {
+                "client_id": CLIENT_ID,
+                "username": username,
+                "credential_uuid": credential_uuid,
+                "phone_number": phone_number,
+                "otp": otp,
+            }
+
+            lid_response = loginid_raw_request(url, request_body, None)
+            # parse response text to json object
+            lid_response_json = json.loads(lid_response.text)
+            print(lid_response_json)
+
+            response = {
+                "statusCode": lid_response.status_code,
+                "headers": headers,
+                "body": json.dumps(process_loginid_credential_response(lid_response_json))
+            }
+            return response
+
         else:
             response = {
                 "statusCode": 404,
@@ -317,4 +388,25 @@ def filter_credentials(credentials, type: str):
 def process_loginid_credential_response(lid_response):
     response = {}
     response["credential"] = lid_response["credential"]
+    return response
+
+def loginid_raw_request(url: str, request_body: dict, token = None):
+    headers = {
+    "Content-Type": "application/json",
+    }
+
+    if token != None:
+        headers["Authorization"] = "Bearer " + token
+
+    response = requests.post(url, headers=headers, data=json.dumps(request_body))
+
+    # if status code is not 200, raise LoginIdError
+    if response.status_code != 200:
+        lid_response_body = json.loads(response.text)
+        print(response.text)
+        raise LoginIDError(
+            response.status_code,
+            lid_response_body["code"],
+            lid_response_body["message"],
+        )
     return response

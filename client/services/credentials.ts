@@ -1,5 +1,10 @@
 import { get, post } from "./fetch";
-import { Config, CredentialData, CredentialsData } from "./types";
+import {
+  Config,
+  CredentialData,
+  CredentialsData,
+  CredentialPhoneInitResponse,
+} from "./types";
 
 import configURL from "../config/main.json";
 
@@ -77,4 +82,29 @@ export const revokeCredential = async (
     { Authorization: "Bearer " + token }
   );
   return response;
+};
+
+export const credentialsPhoneInit = async (
+  phoneNumber: string,
+  deliveryMode: "sms" | "voice",
+  token: string
+) => {
+  return await post<CredentialPhoneInitResponse>(
+    BASE_URL + "/credentials/phone/init",
+    { phone_number: phoneNumber, delivery_mode: deliveryMode },
+    { Authorization: "Bearer " + token }
+  );
+};
+
+export const credentialsPhoneComplete = async (
+  credentialUUID: string,
+  phoneNumber: string,
+  otp: string,
+  token: string
+) => {
+  return await post<CredentialData>(
+    BASE_URL + "/credentials/phone/complete",
+    { credential_uuid: credentialUUID, phone_number: phoneNumber, otp },
+    { Authorization: "Bearer " + token }
+  );
 };

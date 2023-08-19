@@ -1,38 +1,120 @@
 import { useState } from "react";
 import { Text, Title } from "@mantine/core";
+import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 import userStyle from "./styles";
 import EditIcon from "../../icons/Edit";
 import AddPhoneModal from "./AddPhoneModal";
 import { SmallIconButton } from "../../components/Button/";
-import { CognitoUserAttribute } from "amazon-cognito-identity-js";
-import { updateUserAttributes } from "../../cognito";
+import { maskPhoneNumber } from "./phoneValidations";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConfig } from "../../contexts/ConfigContext";
+import {
+  deleteUserAttributes,
+  getUserIDToken,
+  updateUserAttributes,
+} from "../../cognito";
+import {
+  credentialList,
+  credentialsPhoneComplete,
+  credentialsPhoneInit,
+  revokeCredential,
+} from "../../services/credentials";
 
 const PhoneSection = function () {
   const { config } = useConfig();
   const { classes } = userStyle(config);
   const { getLatestAttributes, user, userAttributes } = useAuth();
+  const [retryCount, setRetryCount] = useState(0);
+  const [tempCredentialUUID, setTempCredentialUUID] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [error, setError] = useState("");
 
-  const handleUpdatePhone = async (phoneNumber: string) => {
-    const attributeList = [];
-    const data = {
-      Name: "phone_number",
-      Value: phoneNumber,
-    };
-    const attribute = new CognitoUserAttribute(data);
-
-    attributeList.push(attribute);
+  const handleInit = async (phoneNumber: string) => {
     try {
-      await updateUserAttributes(user, attributeList);
-      await getLatestAttributes();
-      setOpenModal(false);
+      const token = await getUserIDToken(user);
+      const res = await credentialsPhoneInit(phoneNumber, "sms", token);
+      setTempCredentialUUID(res?.credential_uuid || "");
+      setError("");
     } catch (e: any) {
       console.log(e);
       setError(e.message);
+      throw e;
     }
+  };
+
+  const handleComplete = async (phoneNumber: string, otp: string) => {
+    try {
+      const token = await getUserIDToken(user);
+      //complete on loginid
+      await credentialsPhoneComplete(
+        tempCredentialUUID,
+        phoneNumber,
+        otp,
+        token
+      );
+
+      //complete on cognito
+      const list = [];
+      const attribute = {
+        Name: "phone_number",
+        Value: phoneNumber,
+      };
+      list.push(new CognitoUserAttribute(attribute));
+
+      //attempt to update if it fails revoke loginid credential
+      try {
+        await updateUserAttributes(user, list);
+      } catch (e) {
+        await revokeCredential(tempCredentialUUID, token);
+        throw e;
+      }
+
+      await getLatestAttributes();
+      setOpenModal(false);
+      setError("");
+    } catch (e: any) {
+      console.log(e);
+      setError(e.message);
+      setRetryCount((count) => count + 1);
+      if (retryCount >= 2) {
+        setError("Retry limit reached");
+      }
+      throw e;
+    }
+  };
+
+  const handleRevoke = async () => {
+    try {
+      const token = await getUserIDToken(user);
+      const { credentials } = await credentialList(token, "phone_otp");
+      if (credentials.length === 0) {
+        throw new Error("No credentials to revoke");
+      }
+
+      const cred = credentials.find((cred) => {
+        const last4 = cred.name.slice(-4);
+        if (userAttributes.phoneNumber?.endsWith(last4)) {
+          return true;
+        }
+      });
+
+      if (cred) {
+        await revokeCredential(cred.uuid, token);
+        await deleteUserAttributes(user, ["phone_number"]);
+        await getLatestAttributes();
+        setOpenModal(false);
+      }
+    } catch (e: any) {
+      console.log(e);
+      setError(e.message);
+      throw e;
+    }
+  };
+
+  const handleClose = () => {
+    setOpenModal(false);
+    setError("");
+    setRetryCount(0);
   };
 
   return (
@@ -44,7 +126,7 @@ const PhoneSection = function () {
         <Text mb="md">
           Your phone number is{" "}
           <Text color={config.buttons_color} fw="bold" display="inline">
-            {userAttributes.phoneNumber}
+            {maskPhoneNumber(userAttributes.phoneNumber)}
           </Text>
         </Text>
       )}
@@ -59,10 +141,14 @@ const PhoneSection = function () {
 
       {/*Add Phone Modal*/}
       <AddPhoneModal
+        allowRetry={retryCount < 3}
         error={error}
-        handleUpdatePhone={handleUpdatePhone}
+        handleInit={handleInit}
+        handleComplete={handleComplete}
+        handleRevoke={handleRevoke}
         opened={openModal}
-        onClose={() => setOpenModal(false)}
+        onClose={handleClose}
+        userPhoneNumber={userAttributes?.phoneNumber || ""}
       />
     </div>
   );

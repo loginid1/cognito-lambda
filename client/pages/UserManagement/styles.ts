@@ -96,4 +96,8 @@ export default createStyles((theme, config: Config) => ({
       opacity: 1,
     },
   },
+  span: {
+    color: config.buttons_color,
+    fontWeight: "bold",
+  },
 }));
