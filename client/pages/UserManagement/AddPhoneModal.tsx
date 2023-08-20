@@ -4,11 +4,7 @@ import { useConfig } from "../../contexts/ConfigContext";
 import { cleanPhoneNumber } from "./phoneValidations";
 import useStyles from "./styles";
 import ErrorText from "../../components/ErrorText";
-import {
-  PhoneInput,
-  defaultCountries,
-  parseCountry,
-} from "react-international-phone";
+import PhoneInput from "../../components/PhoneInput";
 
 type ModalView = "ADD" | "REVOKE" | "CONFIRM_ADD" | "CONFIRM_REVOKE";
 
@@ -22,12 +18,6 @@ interface Props {
   userPhoneNumber: string;
   allowRetry: boolean;
 }
-
-//LoginID only accepts American/Candian phone numbers
-const countries = defaultCountries.filter((country) => {
-  const { iso2 } = parseCountry(country);
-  return ["ca", "us"].includes(iso2);
-});
 
 const AddPhoneModal = function ({
   allowRetry,
@@ -91,13 +81,7 @@ const AddPhoneModal = function ({
               Please enter your phone number:
             </Text>
             {error && <ErrorText>{error}</ErrorText>}
-            <PhoneInput
-              className={classes.phoneInputWrapper}
-              inputClassName={classes.phoneInput}
-              defaultCountry="ca"
-              countries={countries}
-              onChange={(phoneNumber: string) => setPhoneNumber(phoneNumber)}
-            />
+            <PhoneInput onChange={(value) => setPhoneNumber(value)} />
             <Button onClick={handleEnteredPhoneNumber}>Next</Button>
           </>
         ) : view === "CONFIRM_ADD" ? (
@@ -115,16 +99,17 @@ const AddPhoneModal = function ({
                 type="number"
                 oneTimeCode
                 placeholder=" "
-                disabled={!allowRetry}
                 length={6}
                 value={otp}
                 mb="xl"
                 size="lg"
               />
             </Group>
-            <Button onClick={handleConfirmedPhoneNumber} disabled={!allowRetry}>
-              Confirm
-            </Button>
+            {allowRetry ? (
+              <Button onClick={handleConfirmedPhoneNumber}>Confirm</Button>
+            ) : (
+              <Button onClick={handleEnteredPhoneNumber}>Resend Code</Button>
+            )}
           </>
         ) : view === "REVOKE" ? (
           <>

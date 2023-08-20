@@ -11,6 +11,7 @@ export enum Login {
   RegisterPassword = "REGISTER_PASSWORD",
   LoginPasswordless = "LOGIN_PASSWORDLESS",
   LoginPassword = "LOGIN_PASSWORD",
+  LoginPhoneOTP = "LOGIN_PHONE_OTP",
   EmailVerification = "EMAIL_VERIFICATION",
   CompleteRegistration = "COMPLETE_REGISTRATION",
 }

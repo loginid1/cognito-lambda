@@ -39,7 +39,7 @@ const PasswordLogin = function ({
         <Input
           onChange={handlerEmail}
           mb="5px"
-          placeholder="Username"
+          placeholder="Email"
           type="email"
           value={email}
         />

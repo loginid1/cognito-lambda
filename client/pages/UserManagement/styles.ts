@@ -26,7 +26,7 @@ export default createStyles((theme, config: Config) => ({
     marginBottom: theme.spacing.xl,
     "&:focus": {
       outline: "none",
-      borderColor: config?.buttons_color,
+      borderColor: `${config?.buttons_color} !important`,
     },
   },
   countrySelect: {

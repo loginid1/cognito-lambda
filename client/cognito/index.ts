@@ -233,22 +233,18 @@ export const authenticate = (
     //still in development do not use
     const callbackphoneOTPObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
-        //dummy response to select FIDO2 authentication
         const clientMetadata = {
           authentication_type: "PHONE_OTP",
         };
+
         if (challengParams?.challenge === "AUTH_PARAMS") {
           user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
           return;
+        } else if (challengParams?.type === "PHONE_OTP") {
+          res(user);
+        } else {
+          throw new Error("Invalid challenge");
         }
-
-        console.log(challengParams);
-
-        user.sendCustomChallengeAnswer(
-          "123456", //OTP code"
-          this,
-          clientMetadata
-        );
       },
 
       onSuccess: function (_) {
@@ -279,5 +275,37 @@ export const authenticate = (
         break;
       }
     }
+  });
+};
+
+export const respondToAuthChallenge = async (
+  user: CognitoUser,
+  authentication_type: string,
+  challengeResponse: any
+): Promise<CognitoUser | null> => {
+  return new Promise((res, rej) => {
+    const clientMetadata = {
+      authentication_type,
+    };
+
+    user.setAuthenticationFlowType("CUSTOM_AUTH");
+    user.sendCustomChallengeAnswer(
+      challengeResponse,
+      {
+        customChallenge: async function (_: any) {
+          console.log("Retry...");
+          res(null);
+        },
+
+        onSuccess: function (_) {
+          res(user);
+        },
+
+        onFailure: function (err) {
+          rej(err);
+        },
+      },
+      clientMetadata
+    );
   });
 };

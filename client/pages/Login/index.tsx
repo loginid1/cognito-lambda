@@ -9,6 +9,7 @@ import PasswordlessLogin from "./PasswordlessLogin";
 import PasswordLogin from "./PasswordLogin";
 import PasswordlessRegister from "./PasswordlessRegister";
 import PasswordRegister from "./PasswordRegister";
+import PhoneOTPLogin from "./PhoneOTPLogin";
 import EmailVerification from "./EmailVerification";
 import RegisterComplete from "./RegisterComplete";
 import Footer from "./Footer";
@@ -80,6 +81,16 @@ const Login = function () {
     case LoginEnum.CompleteRegistration:
       Form = (
         <RegisterComplete
+          handlerEmail={handlerEmail}
+          handlerWhichLogin={handlerWhichLogin}
+          email={email}
+        />
+      );
+      break;
+
+    case LoginEnum.LoginPhoneOTP:
+      Form = (
+        <PhoneOTPLogin
           handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
           email={email}

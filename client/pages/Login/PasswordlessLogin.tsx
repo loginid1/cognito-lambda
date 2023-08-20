@@ -43,7 +43,11 @@ const PasswordlessLogin = function ({
         <Button type="submit" size="md" classNames={{ root: classes.button }}>
           Login with passkey
         </Button>
-        <Button classNames={{ root: classes.button }} variant="outline">
+        <Button
+          onClick={() => handlerWhichLogin(Login.LoginPhoneOTP)}
+          classNames={{ root: classes.button }}
+          variant="outline"
+        >
           Login with magic link
         </Button>
         <Button

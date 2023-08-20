@@ -30,6 +30,7 @@ const PhoneSection = function () {
   const [error, setError] = useState("");
 
   const handleInit = async (phoneNumber: string) => {
+    setRetryCount(0);
     try {
       const token = await getUserIDToken(user);
       const res = await credentialsPhoneInit(phoneNumber, "sms", token);
@@ -43,6 +44,7 @@ const PhoneSection = function () {
   };
 
   const handleComplete = async (phoneNumber: string, otp: string) => {
+    setError("");
     try {
       const token = await getUserIDToken(user);
       //complete on loginid
@@ -54,6 +56,8 @@ const PhoneSection = function () {
       );
 
       //complete on cognito
+      //TODO: add cutom attribute to cognito instead:
+      //cutom:phone_number and custom:phone_credential_uuid
       const list = [];
       const attribute = {
         Name: "phone_number",
@@ -71,7 +75,6 @@ const PhoneSection = function () {
 
       await getLatestAttributes();
       setOpenModal(false);
-      setError("");
     } catch (e: any) {
       console.log(e);
       setError(e.message);
@@ -100,6 +103,7 @@ const PhoneSection = function () {
 
       if (cred) {
         await revokeCredential(cred.uuid, token);
+        //delete custom attributes instead
         await deleteUserAttributes(user, ["phone_number"]);
         await getLatestAttributes();
         setOpenModal(false);
