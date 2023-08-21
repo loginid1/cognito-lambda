@@ -180,13 +180,14 @@ export const confirmSignUp = (
 
 export const authenticate = (
   username: string,
-  password: string,
+  answer: string,
   type: string
 ): Promise<CognitoUser> => {
   return new Promise((res, rej) => {
     const authenticationData: IAuthenticationDetailsData = {
       Username: username,
-      Password: password,
+      //could be password
+      Password: answer,
     };
     const userData: ICognitoUserData = {
       Username: username,
@@ -230,8 +231,7 @@ export const authenticate = (
       },
     };
 
-    //still in development do not use
-    const callbackphoneOTPObj: IAuthenticationCallback = {
+    const callbackPhoneOTPObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
         const clientMetadata = {
           authentication_type: "PHONE_OTP",
@@ -257,6 +257,32 @@ export const authenticate = (
       },
     };
 
+    const callbackMagicLinkObj: IAuthenticationCallback = {
+      customChallenge: async function (challengParams: any) {
+        const clientMetadata = {
+          authentication_type: "MAGIC_LINK",
+        };
+
+        if (challengParams?.challenge === "AUTH_PARAMS") {
+          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
+          return;
+        } else if (challengParams?.type === "MAGIC_LINK") {
+          user.sendCustomChallengeAnswer(answer, this, clientMetadata);
+        } else {
+          throw new Error("Invalid challenge");
+        }
+      },
+
+      onSuccess: function (_) {
+        console.log(_);
+        res(user);
+      },
+
+      onFailure: function (err) {
+        rej(err);
+      },
+    };
+
     switch (type) {
       case "FIDO2": {
         user.setAuthenticationFlowType("CUSTOM_AUTH");
@@ -266,7 +292,13 @@ export const authenticate = (
 
       case "PHONE_OTP": {
         user.setAuthenticationFlowType("CUSTOM_AUTH");
-        user.initiateAuth(authenticationDetails, callbackphoneOTPObj);
+        user.initiateAuth(authenticationDetails, callbackPhoneOTPObj);
+        break;
+      }
+
+      case "MAGIC_LINK": {
+        user.setAuthenticationFlowType("CUSTOM_AUTH");
+        user.initiateAuth(authenticationDetails, callbackMagicLinkObj);
         break;
       }
 

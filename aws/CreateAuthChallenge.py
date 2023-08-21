@@ -58,6 +58,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
         response["publicChallengeParameters"] = {
             "public_key": public_key,
         }
+
     elif client_metadata["authentication_type"] == "PHONE_OTP":
         credential_challenge_uuid = ""
 
@@ -96,9 +97,24 @@ def lambda_handler(event: dict, _: dict) -> dict:
         # add cred uuid to metadata to be availble in next round
         response["challengeMetadata"] = credential_challenge_uuid
 
+    elif client_metadata["authentication_type"] == "MAGIC_LINK":
+        userAttributes = event["request"]["userAttributes"]
+        email = userAttributes.get("email")
+
+        if not email:
+            raise Exception("Email is required")
+
+        # otp code is stored on loginid side
+        # can modify here to store otp here instead from custom user attribute or dynamodb, etc
+        response["privateChallengeParameters"] = {
+            "email": email
+        }
+        response["publicChallengeParameters"] = {
+            "type": "MAGIC_LINK"
+        }
+
     else:
         raise Exception("Authentication type not supported")
-
 
     print(event)
     return event

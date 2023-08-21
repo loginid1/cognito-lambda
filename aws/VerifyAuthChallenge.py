@@ -2,7 +2,7 @@ import json
 import re
 import requests
 
-from loginid import LoginID
+from loginid import LoginIdManagement
 from loginid.core import LoginIDError
 from os import environ
 
@@ -14,7 +14,7 @@ PRIVATE_KEY = re.sub(
     environ.get("PRIVATE_KEY") or ""
 )
 
-lid = LoginID(CLIENT_ID, PRIVATE_KEY, BASE_URL)
+lid = LoginIdManagement(CLIENT_ID, PRIVATE_KEY, BASE_URL)
 
 
 class NotFound(Exception):
@@ -39,6 +39,11 @@ def lambda_handler(event: dict, _: dict) -> dict:
     # if authentication type is empty throw error
     if not authentication_type:
         raise NotFound("Authentication type not found")
+
+    # pass for next round
+    if authentication_type == "AUTH_PARAMS":
+        response["answerCorrect"] = False
+        return event
 
     try:
         if authentication_type == "FIDO2":
@@ -96,6 +101,24 @@ def lambda_handler(event: dict, _: dict) -> dict:
             if not lid_response["is_authenticated"]:
                 response["answerCorrect"] = False
                 return event
+
+            response["answerCorrect"] = True
+
+        elif authentication_type == "MAGIC_LINK":
+            username = event["userName"]
+
+            # from private challenge
+            # we don't need to do anything with this but a more custom implementation might
+            # would have the otp here and may need to be decrypted
+            private_challenge_params = request["privateChallengeParameters"]
+
+            # answer
+            code = request["challengeAnswer"]
+
+            # loginid will verify code
+            lid.authorize_code(code, "long", "add_credential", username=username)
+            # we don't really need to use the code past this point so we can invoke it
+            lid.invalidate_all_codes("long", "add_credential", username=username)
 
             response["answerCorrect"] = True
 

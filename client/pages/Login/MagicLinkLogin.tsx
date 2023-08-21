@@ -1,13 +1,12 @@
 import { FormEvent, useState } from "react";
-import { Button, Input, UnstyledButton } from "@mantine/core";
+import { Button, Input, Text, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
-import * as cognito from "../../cognito/";
-import { useAuth } from "../../contexts/AuthContext";
+import { sendAccessLink } from "../../services/credentials";
 import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
 
-const PasswordlessLogin = function ({
+const MagicLinkLogin = function ({
   handlerEmail,
   handlerWhichLogin,
   email,
@@ -15,15 +14,14 @@ const PasswordlessLogin = function ({
   const { config } = useConfig();
   const { classes } = useStyle(config);
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const [accessLinkSent, setAccessLinkSent] = useState(false);
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const user = await cognito.authenticate(email.toLowerCase(), "", "FIDO2");
-      if (user) {
-        login(user);
-      }
+      await sendAccessLink(email);
+      setAccessLinkSent(true);
+      setError("");
     } catch (e: any) {
       setError(e.message);
     }
@@ -32,30 +30,29 @@ const PasswordlessLogin = function ({
   return (
     <form onSubmit={handlerSubmit}>
       <div className={classes.buttonWrapper}>
+        <Text fw="bold" mb="lg">
+          {accessLinkSent
+            ? "Please check your email for your access link"
+            : "An access link will be sent to your email address"}
+        </Text>
+
         {error && <ErrorText>{error}</ErrorText>}
         <Input
           onChange={handlerEmail}
-          mb="lg"
+          mb="md"
           placeholder="Email"
           type="email"
           value={email}
         />
-        <Button type="submit" size="md" classNames={{ root: classes.button }}>
-          Login with passkey
+        <Button type="submit" classNames={{ root: classes.button }}>
+          {accessLinkSent ? "Resend access link" : "Send access link"}
         </Button>
         <Button
-          onClick={() => handlerWhichLogin(Login.LoginMagicLink)}
+          onClick={() => handlerWhichLogin(Login.LoginPasswordless)}
           classNames={{ root: classes.button }}
           variant="outline"
         >
-          Login with magic link
-        </Button>
-        <Button
-          onClick={() => handlerWhichLogin(Login.LoginPassword)}
-          classNames={{ root: classes.button }}
-          variant="outline"
-        >
-          Login with password
+          Back
         </Button>
         <UnstyledButton
           onClick={() => handlerWhichLogin(Login.RegisterPasswordless)}
@@ -68,4 +65,4 @@ const PasswordlessLogin = function ({
   );
 };
 
-export default PasswordlessLogin;
+export default MagicLinkLogin;

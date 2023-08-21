@@ -108,3 +108,7 @@ export const credentialsPhoneComplete = async (
     { Authorization: "Bearer " + token }
   );
 };
+
+export const sendAccessLink = async (email: string) => {
+  return await post<null>(BASE_URL + "/authenticate/link", { email });
+};

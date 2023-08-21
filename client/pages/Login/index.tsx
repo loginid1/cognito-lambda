@@ -10,6 +10,7 @@ import PasswordLogin from "./PasswordLogin";
 import PasswordlessRegister from "./PasswordlessRegister";
 import PasswordRegister from "./PasswordRegister";
 import PhoneOTPLogin from "./PhoneOTPLogin";
+import MagicLinkLogin from "./MagicLinkLogin";
 import EmailVerification from "./EmailVerification";
 import RegisterComplete from "./RegisterComplete";
 import Footer from "./Footer";
@@ -97,12 +98,23 @@ const Login = function () {
         />
       );
       break;
+
+    case LoginEnum.LoginMagicLink:
+      Form = (
+        <MagicLinkLogin
+          handlerEmail={handlerEmail}
+          handlerWhichLogin={handlerWhichLogin}
+          email={email}
+        />
+      );
+      break;
   }
 
   return (
     <Wrapper>
       <Card>
         <Image
+          maw={240}
           classNames={{ root: classes.logo }}
           src={config.login_logo}
           alt="Logo"

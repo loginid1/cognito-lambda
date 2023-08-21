@@ -21,7 +21,7 @@ export interface AuthContextProps {
   userAttributes: UserAttributes;
   isFetching: boolean;
   getLatestAttributes: () => Promise<void>;
-  login: (user: CognitoUser) => void;
+  login: (user: CognitoUser) => Promise<void>;
   logout: () => void;
 }
 
@@ -30,7 +30,7 @@ const defaultAuthContext: AuthContextProps = {
   userAttributes: {},
   isFetching: true,
   getLatestAttributes: async () => {},
-  login: () => {},
+  login: async () => {},
   logout: () => {},
 };
 

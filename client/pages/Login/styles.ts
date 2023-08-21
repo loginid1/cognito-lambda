@@ -14,7 +14,6 @@ export default createStyles((theme, { buttons_color }: Config) => ({
     },
   },
   logo: {
-    maxWidth: 275,
     margin: `0 auto ${theme.spacing.xl}`,
   },
   header: {
