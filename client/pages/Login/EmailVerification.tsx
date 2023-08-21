@@ -1,9 +1,8 @@
 import { FormEvent, useState } from "react";
-import { Button, Input, UnstyledButton } from "@mantine/core";
+import { Button, Group, PinInput, Text, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
-import { inputHandler } from "../../handlers/common";
 import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
@@ -27,12 +26,22 @@ const EmailVerification = ({ email, handlerWhichLogin }: CommonFormProps) => {
     <form onSubmit={handlerSubmit}>
       <div className={classes.buttonWrapper}>
         {error && <ErrorText>{error}</ErrorText>}
-        <Input
-          onChange={inputHandler(setCode)}
-          mb="lg"
-          placeholder="Enter verification code"
-          value={code}
-        />
+        <Text mb="md" fw="bold" ta="center">
+          Please check your email for a verification code
+        </Text>
+        <Group position="center">
+          <PinInput
+            ta="center"
+            onChange={(value) => setCode(value)}
+            type="number"
+            oneTimeCode
+            placeholder=" "
+            length={6}
+            value={code}
+            mb="xl"
+            size="lg"
+          />
+        </Group>
         <Button type="submit" classNames={{ root: classes.button }}>
           Confirm
         </Button>
