@@ -12,6 +12,7 @@ import { commonError } from "../../errors";
 import { useConfig } from "../../contexts/ConfigContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserIDToken } from "../../cognito";
+import { getDefaultCredentialName } from "../../utils/credentials";
 import * as webauthn from "../../webauthn/";
 import {
   fido2CreateComplete,
@@ -75,7 +76,11 @@ const Passkeys = function () {
       const token = await getUserIDToken(user);
       const initRes = await fido2CreateInit(token);
       const pulicKey = await webauthn.create(initRes);
-      const completeRes = await fido2CreateComplete(pulicKey, token);
+      const completeReqBody = {
+        ...pulicKey,
+        credential_name: getDefaultCredentialName(),
+      };
+      const completeRes = await fido2CreateComplete(completeReqBody, token);
 
       //add new passkey to the list
       if (completeRes) {

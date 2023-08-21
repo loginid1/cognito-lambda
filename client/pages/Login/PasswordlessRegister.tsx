@@ -5,6 +5,7 @@ import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { validateEmail } from "./validations";
 import { useConfig } from "../../contexts/ConfigContext";
+import { getDefaultCredentialName } from "../../utils/credentials";
 import * as webauthn from "../../webauthn/";
 import {
   fido2RegisterComplete,
@@ -33,6 +34,8 @@ const PasswordlessRegister = ({
         ...publicKey,
         username: email,
         email: email,
+        //add a default credential name for now
+        credential_name: getDefaultCredentialName(),
       };
       await fido2RegisterComplete(completeReqPayload);
 

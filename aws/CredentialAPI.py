@@ -129,10 +129,11 @@ def lambda_handler(event: dict, _: dict) -> dict:
             return response
 
         elif path == FIDO2_REGISTER_COMPLETE_PATH:
-            username, email, attestation_payload = parse_json(
+            username, email, credential_name, attestation_payload = parse_json(
                 body, 
                 "username", 
                 "email", 
+                "credential_name",
                 "attestation_payload"
             )
             # lower case username
@@ -151,7 +152,8 @@ def lambda_handler(event: dict, _: dict) -> dict:
             }
 
             meta_data = {
-                "register_type": "FIDO2"
+                "register_type": "FIDO2",
+                "credential_name": credential_name,
             }
 
             aws_cognito.sign_up(
@@ -197,9 +199,17 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         elif path == FIDO2_CREATE_COMPLETE_PATH:
             username = claims["cognito:username"]
-            attestation_payload, = parse_json(body, "attestation_payload")
+            attestation_payload, credential_name = parse_json(
+                body,
+                "attestation_payload",
+                "credential_name"
+            )
 
-            lid_response = lid.complete_add_fido2_credential(attestation_payload, username)
+            lid_response = lid.complete_add_fido2_credential(
+                attestation_payload,
+                username,
+                credential_name
+            )
 
             response = {
                 "statusCode": 200,

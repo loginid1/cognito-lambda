@@ -55,8 +55,9 @@ def lambda_handler(event: dict, _: dict) -> dict:
             raise CustomError("Attestation not found")
 
         attestation_payload = json.loads(validation_data["attestation_payload"])
+        credential_name = meta_data.get("credential_name", "")
 
-        loginid_res = lid.register_fido2_complete(username, attestation_payload)
+        loginid_res = lid.register_fido2_complete(username, attestation_payload, credential_name)
 
         print(loginid_res)
 
