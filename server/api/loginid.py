@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, Response, jsonify, request
 from http import HTTPStatus
 from loginid import LoginIdManagement
 from loginid.core import LoginIDError
@@ -26,6 +26,21 @@ aws_cognito = boto3.client(
     aws_access_key_id=COGNITO_ACCESS_KEY_ID,
     aws_secret_access_key=COGNITO_SECRET_ACCESS_KEY,
 )
+
+
+def filter_credentials(credentials, type: str):
+    data = {}
+    if type == "":
+        data["credentials"] = credentials
+        return data
+    data["credentials"] = [credential for credential in credentials if credential["type"] == type]
+    return data
+
+
+def process_loginid_credential_response(lid_response):
+    response = {}
+    response["credential"] = lid_response["credential"]
+    return response
 
 
 @loginid_bluebrint.route("/token/generate", methods=["POST"])
@@ -87,24 +102,74 @@ def delete_user():
         return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
 
 
-# note getting user data from cognito may not be necessary if stored somewhere else
+
+@loginid_bluebrint.route("/credentials/list", methods=["GET"])
+@jwt_required()
+def credentials_list():
+    username = get_jwt_identity()
+    type = request.args.get("type") or ""
+    status = request.args.get("status") or ""
+
+    try:
+        lid_response = lid.get_credentials(status=status, username=username)
+        return filter_credentials(lid_response["credentials"], type), HTTPStatus.OK
+
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
+
+
+@loginid_bluebrint.route("/credentials/rename", methods=["POST"])
+@jwt_required()
+def credentials_rename():
+    username = get_jwt_identity()
+    credential_uuid, name = default_json("credential_uuid", "name")
+
+    try:
+        lid_response = lid.rename_credential(
+            cred_id=credential_uuid,
+            updated_name=name,
+            username=username
+        )
+        return process_loginid_credential_response(lid_response), HTTPStatus.OK
+
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
+
+
+@loginid_bluebrint.route("/credentials/revoke", methods=["POST"])
+@jwt_required()
+def credentials_revoke():
+    username = get_jwt_identity()
+    credential_uuid, = default_json("credential_uuid")
+
+    try:
+        lid_response = lid.revoke_credential(
+            cred_id=credential_uuid,
+            username=username
+        )
+        return process_loginid_credential_response(lid_response), HTTPStatus.OK
+
+    except LoginIDError as e:
+        return jsonify(message=e.message), e.status_code
+    except Exception as e:
+        print(e)
+        return jsonify(message="Request failed"), HTTPStatus.BAD_REQUEST
+
+
 @loginid_bluebrint.route("fido2/create/init", methods=["POST"])
 @jwt_required()
 def fido2_create_init():
-    data = get_jwt_identity()
+    username = get_jwt_identity()
 
     try:
-        username = data["username"]
-
-        try:
-            user = lid.get_user(username)
-            loginid_user_id = user["id"]
-        except LoginIDError as e:
-            if e.status_code == 404 and e.error_code == "user_not_found":
-                user = lid.add_user_without_credentials(username)
-                loginid_user_id = user["id"]
-            else:
-                raise e
+        user = lid.get_user(username)
+        loginid_user_id = user["id"]
 
         init_response = lid.force_fido2_credential_init(loginid_user_id)
         attestation_payload = init_response["attestation_payload"]
@@ -120,12 +185,11 @@ def fido2_create_init():
 @jwt_required()
 def fido2_create_complete():
     attestation_payload, = default_json("attestation_payload")
-    data = get_jwt_identity()
+    username = get_jwt_identity()
 
     try:
-        username = data["username"]
-        complete_response = lid.complete_add_fido2_credential(attestation_payload, username)
-        return complete_response, HTTPStatus.OK
+        lid_response = lid.complete_add_fido2_credential(attestation_payload, username)
+        return process_loginid_credential_response(lid_response), HTTPStatus.OK
     except LoginIDError as e:
         return jsonify(message=e.message), e.status_code
     except Exception as e:

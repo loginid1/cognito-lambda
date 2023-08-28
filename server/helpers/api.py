@@ -26,9 +26,10 @@ def create_session_token(id_token_payload: dict, access_token: str) -> str:
 
     # not ideal to store this data in session cookie but good enough for this example
     # probably best to store it in a DB
+    # probably don't need this anymore
     user_data = {
         "username": username,
         "access_token": access_token,
     }
 
-    return create_access_token(user_data, expires_delta=exp_timedelta)
+    return create_access_token(identity=username, expires_delta=exp_timedelta)

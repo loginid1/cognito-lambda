@@ -1,6 +1,17 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Resources:
+  PythonSDK:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      Content:
+        S3Bucket: loginid-cognito
+        S3Key: python-sdk.zip
+      Description: Python layer with LoginID SDK compatible for linux
+      CompatibleRuntimes:
+      - python3.9
+      LayerName: "PythonSDK"
+
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -18,7 +29,7 @@ Resources:
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: my-app
+      ClientName: loginid-app
       GenerateSecret: false
       UserPoolId: !Ref UserPool
       ExplicitAuthFlows:
@@ -36,19 +47,19 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-PreSignUp
+      CodeUri: s3://loginid-cognito/lambdas/PreSignUp.zip
       Handler: index.lambda_handler
       Runtime: python3.9
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
-      InlineCode: "code"
       Environment:
         Variables:
-          #LOGINID_BASE_URL: 
-          #LOGINID_CLIENT_ID: 
-          #PRIVATE_KEY: 
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          LOGINID_CLIENT_ID: !Ref LOGINIDClientID
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
       Layers:
-        #- arn:aws:lambda:us-west-1:978771399365:layer:LoginID-SDK:1
+        - !Ref PythonSDK
   PreSignUpPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -61,12 +72,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
+      CodeUri: s3://loginid-cognito/lambdas/DefineAuthChallenge.zip
       Handler: index.lambda_handler
       Runtime: python3.9
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
-      InlineCode: "code"
   DefineAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -79,19 +90,19 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
+      CodeUri: s3://loginid-cognito/lambdas/CreateAuthChallenge.zip
       Handler: index.lambda_handler
       Runtime: python3.9
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
-      InlineCode: "code"
       Environment:
         Variables:
-          #LOGINID_BASE_URL: 
-          #LOGINID_CLIENT_ID: 
-          #PRIVATE_KEY: 
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          LOGINID_CLIENT_ID: !Ref LOGINIDClientID
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
       Layers:
-        #- arn:aws:lambda:us-west-1:978771399365:layer:LoginID-SDK:1
+        - !Ref PythonSDK
   CreateAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -104,19 +115,19 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
+      CodeUri: s3://loginid-cognito/lambdas/VerifyAuthChallenge.zip
       Handler: index.lambda_handler
       Runtime: python3.9
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
-      InlineCode: "code"
       Environment:
         Variables:
-          #LOGINID_BASE_URL: 
-          #LOGINID_CLIENT_ID: 
-          #PRIVATE_KEY: 
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          LOGINID_CLIENT_ID: !Ref LOGINIDClientID
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
       Layers:
-        #- arn:aws:lambda:us-west-1:978771399365:layer:LoginID-SDK:1
+        - !Ref PythonSDK
   VerifyAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -124,46 +135,172 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       Action: lambda:InvokeFunction
       SourceArn: !GetAtt UserPool.Arn
-        
-Outputs :
-  UserPoolId:
-    Value: !Ref 'UserPool'
-  AppClientID:
-    Value: !Ref 'UserPoolClient'
 
+  RestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub ${AWS::StackName}-Credential API
+      Description: API needed for creating and managing credentials
+      Body:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: !Sub s3://loginid-cognito/CredentialAPI.yaml
+
+  ProxyResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt RestAPI.RootResourceId
+      RestApiId: !Ref RestAPI
+      PathPart: '{proxy+}'
+
+  APIGatewayRootMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        IntegrationResponses:
+          -
+            StatusCode: 200
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt LoginIDCredentialAPI.Arn
+      ResourceId: !Ref ProxyResource
+      RestApiId: !Ref RestAPI
+
+  APIGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - APIGatewayRootMethod
+    Properties:
+      RestApiId: !Ref RestAPI
+      StageName: dev
+
+  Authorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      IdentitySource: method.request.header.Authorization
+      Name: CognitoAuthorizer
+      ProviderARNs:
+        - Fn::GetAtt:
+            - UserPool
+            - Arn
+      RestApiId: !Ref RestAPI
+      Type: COGNITO_USER_POOLS
+
+  LoginIDCredentialAPI:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-LoginIDCredentialAPI
+      CodeUri: s3://loginid-cognito/lambdas/CredentialAPI.zip
+      Description: 
+      MemorySize: 128
+      Timeout: 3
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+          COGNITO_REGION_NAME: !Ref AWS::Region
+          LOGIN_LOGO: !Ref LOGINIDUILoginLogo
+          PAGE_BACKGROUND_COLOR: !Ref LOGINIDUIPageBackgroundColor
+          PAGE_BACKGROUND_IMAGE: !Ref LOGINIDUIPageBackgroundImage
+          BACKGROUND_COLOR: !Ref LOGINIDUILoginBackgroundColor
+          BACKGROUND_IMAGE: !Ref LOGINIDUILoginBackgroundImage
+          BUTTONS_COLOR: !Ref LOGINIDUILoginButtonsColor
+          COMPANY_NAME: !Ref LOGINIDUICompanyName
+          SES_SENDER_EMAIL: !Ref SESSenderEmail
+          LOGINID_CLIENT_ID: !Ref LOGINIDClientID
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+          # not sure here
+          APP_URL: !Ref AppURL
+      Policies:
+        - SESCrudPolicy:
+            IdentityName: SES Sender
+      Architectures:
+        - x86_64
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      EphemeralStorage:
+        Size: 512
+      Layers:
+        - !Ref PythonSDK
+
+  lambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LoginIDCredentialAPI.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/*
+        
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+  AppClientID:
+    Value: !Ref UserPoolClient
+  DeploymentEndpoint:
+    Value: !Sub https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/dev
 
 Parameters:
-  LOGINID_FIDO2_Rpid:
+  LOGINIDBaseURL:
+    Type: String
+    Default: "https://playground.loginid.io"
+    Description: "BaseURL required for LoginID service"
+  LOGINIDClientID:
+    Type: String
+    Description: "Client ID app required for LoginID service"
+  LOGINIDPrivateKey:
+    Type: String
+    NoEcho: true
+    Default: "Private key needed for generating authorization token required for LoginID service"
+  AppURL:
+    Type: String
+    Description: "The URL of where the magic link will land to verify the access link"
+  SESSenderEmail:
+    Type: String
+    Description: "A verified SES sender email to send access links"
+
+  LOGINIDFIDO2Rpid:
     Type: String
     Default: ""
     Description: "The RPID is the domain of your user facing authentication interface. By default it will be set to whatever domain your solution is hoster on. However be aware that FIDO/Passkey credentials, public keys, will be permanently bound to the specified domain without ability to change that. You may wish to set RPID to be a root of your website: example.com, and this would allow your child subdomains, login.example.com, to login with these credentials, so long you explicitly specify that it should use your parent, or root RPID, example.com. You will need to specify your actual domain, origin, allow list."
-  LOGINID_FIDO2_Origin_Allowlist:
+  LOGINIDFIDO2OriginAllowlist:
     Type: String
     Default: ""
     Description: "List of allowed origins. At least one must be specified. Comma separated. Must includes protocol. HTTPS is mandatory. Example: https://login.example.com,https://auth.example.com,https://example.com"
   
-  LOGINID_UI_Page_Background_Color:
+  LOGINIDUIPageBackgroundColor:
     Type: String
     Default: ""
     Description: "Page background color in web RGB #FFFFFF notation"
-  LOGINID_UI_Page_Background_Image:
+  LOGINIDUIPageBackgroundImage:
     Type: String
     Default: ""
     Description: "URL location of your page background image"
   
-  LOGINID_UI_Login_Logo:
+  LOGINIDUILoginLogo:
     Type: String
     Default: ""
     Description: "URL location of your login UI logo"
-  LOGINID_UI_Login_Background_Color:
+  LOGINIDUILoginBackgroundColor:
     Type: String
     Default: ""
     Description: "UI box background color in web RGB #FFFFFF notation"
-  LOGINID_UI_Login_Buttons_Color:
+  LOGINIDUILoginButtonsColor:
     Type: String
     Default: ""
     Description: "UI box buttons color in web RGB #FFFFFF notation"
-  LOGINID_UI_Page_Background_Image:
+  LOGINIDUILoginBackgroundImage:
     Type: String
     Default: ""
     Description: "URL location of your UI box background image"
+  LOGINIDUICompanyName:
+    Type: String
+    Default: ""
+    Description: "Company name displayed on signup/login"
