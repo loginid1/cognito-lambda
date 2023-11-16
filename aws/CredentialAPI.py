@@ -19,8 +19,6 @@ PRIVATE_KEY = re.sub(
     environ.get("PRIVATE_KEY") or ""
 )
 COGNITO_REGION_NAME = environ.get("COGNITO_REGION_NAME") or ""
-COGNITO_ACCESS_KEY_ID = environ.get("COGNITO_ACCESS_KEY_ID") or ""
-COGNITO_SECRET_ACCESS_KEY = environ.get("COGNITO_SECRET_ACCESS_KEY") or ""
 COGNITO_CLIENT_ID = environ.get("COGNITO_CLIENT_ID") or ""
 SES_SENDER_EMAIL = environ.get("SES_SENDER_EMAIL") or ""
 
@@ -28,8 +26,6 @@ lid = LoginIdManagement(CLIENT_ID, PRIVATE_KEY, BASE_URL)
 aws_cognito = boto3.client(
     "cognito-idp",
     region_name=COGNITO_REGION_NAME,
-    aws_access_key_id=COGNITO_ACCESS_KEY_ID,
-    aws_secret_access_key=COGNITO_SECRET_ACCESS_KEY,
 )
 ses_client = boto3.client("ses", region_name=COGNITO_REGION_NAME)
 
@@ -39,16 +35,11 @@ FIDO2_REGISTER_COMPLETE_PATH = "/fido2/register/complete"
 FIDO2_CREATE_INIT_PATH = "/fido2/create/init"
 FIDO2_CREATE_COMPLETE_PATH = "/fido2/create/complete"
 
-CREDENTIALS_PHONE_INIT_PATH = "/credentials/phone/init"
-CREDENTIALS_PHONE_COMPLETE_PATH = "/credentials/phone/complete"
-
 CREDENTIALS_LIST_PATH = "/credentials/list"
 CREDENTIALS_RENAME_PATH = "/credentials/rename"
 CREDENTIALS_REVOKE_PATH = "/credentials/revoke"
 
 MAGIC_LINK_INIT_PATH = "/authenticate/link"
-
-CONFIG_PATH = "/config"
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
@@ -68,7 +59,6 @@ def lambda_handler(event: dict, _: dict) -> dict:
         paths = [
             FIDO2_REGISTER_INIT_PATH,
             FIDO2_REGISTER_COMPLETE_PATH,
-            CONFIG_PATH,
             MAGIC_LINK_INIT_PATH,
         ]
 
@@ -86,33 +76,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
                 }
                 return response
 
-        if path == CONFIG_PATH:
-            # style config vars
-            PAGE_BACKGROUND_COLOR = environ.get("PAGE_BACKGROUND_COLOR") or ""
-            PAGE_BACKGROUND_IMAGE = environ.get("PAGE_BACKGROUND_IMAGE") or ""
-            BACKGROUND_COLOR = environ.get("BACKGROUND_COLOR") or ""
-            BACKGROUND_IMAGE = environ.get("BACKGROUND_IMAGE") or ""
-            BUTTONS_COLOR = environ.get("BUTTONS_COLOR") or ""
-            LOGIN_LOGO = environ.get("LOGIN_LOGO") or ""
-            COMPANY_NAME = environ.get("COMPANY_NAME") or ""
-
-            response = {
-                "page_background_color": PAGE_BACKGROUND_COLOR,
-                "page_background_image": PAGE_BACKGROUND_IMAGE,
-                "background_color": BACKGROUND_COLOR,
-                "background_image": BACKGROUND_IMAGE,
-                "buttons_color": BUTTONS_COLOR,
-                "login_logo": LOGIN_LOGO,
-                "company_name": COMPANY_NAME,
-            }
-
-            return {
-                "statusCode": 200,
-                "headers": headers,
-                "body": json.dumps(response),
-            }
-
-        elif path == FIDO2_REGISTER_INIT_PATH:
+        if path == FIDO2_REGISTER_INIT_PATH:
             # get username from request body
             username, = parse_json(body, "username")
             # lower case username or make it empty string
@@ -263,70 +227,6 @@ def lambda_handler(event: dict, _: dict) -> dict:
                 "statusCode": 200,
                 "headers": headers,
                 "body": json.dumps(process_loginid_credential_response(lid_response))
-            }
-            return response
-
-        elif path == CREDENTIALS_PHONE_INIT_PATH:
-            username = claims["cognito:username"]
-            phone_number, delivery_mode = parse_json(body, "phone_number", "delivery_mode")
-
-            # make http request to loginid api
-            url = BASE_URL + "/api/native/credentials/phone/init/force"
-            request_body = {
-                "client_id": CLIENT_ID,
-                "username": username,
-                "phone_number": phone_number,
-                "delivery_mode": delivery_mode,
-            }
-
-            lid_response = {}
-            try: 
-                token = lid.generate_service_token("credentials.force_add")
-                lid_response = loginid_raw_request(url, request_body, token)
-            except LoginIDError as e:
-                # check if user not found
-                if e.status_code == 404 and e.error_code == "user_not_found":
-                    user = lid.add_user_without_credentials(username)
-                    token = lid.generate_service_token("credentials.force_add")
-                    lid_response = loginid_raw_request(url, request_body, token)
-                else:
-                    raise e
-
-            response = {
-                "statusCode": lid_response.status_code,
-                "headers": headers,
-                "body": lid_response.text
-            }
-            return response
-
-        elif path == CREDENTIALS_PHONE_COMPLETE_PATH:
-            username = claims["cognito:username"]
-            credential_uuid, phone_number, otp = parse_json(
-                body,
-                "credential_uuid",
-                "phone_number",
-                "otp",
-            )
-
-            # make http request to loginid api
-            url = BASE_URL + "/api/native/credentials/phone/complete"
-            request_body = {
-                "client_id": CLIENT_ID,
-                "username": username,
-                "credential_uuid": credential_uuid,
-                "phone_number": phone_number,
-                "otp": otp,
-            }
-
-            lid_response = loginid_raw_request(url, request_body, None)
-            # parse response text to json object
-            lid_response_json = json.loads(lid_response.text)
-            print(lid_response_json)
-
-            response = {
-                "statusCode": lid_response.status_code,
-                "headers": headers,
-                "body": json.dumps(process_loginid_credential_response(lid_response_json))
             }
             return response
 
