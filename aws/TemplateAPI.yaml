@@ -514,4 +514,5 @@ Parameters:
     Description: "The given user pool ID"
   UserPoolArn:
     Type: String
+    Description: "ARN of the user pool associated with UserPoolClient"
     Default: arn:aws:cognito-idp:us-west-1:937010351612:userpool/us-west-1_rXI17nqHo
