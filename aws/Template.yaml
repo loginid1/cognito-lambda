@@ -38,6 +38,26 @@ Resources:
         - name
         - custom:loginid_user_id
 
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: LambdaSecretsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "secretsmanager:GetSecretValue"
+                Resource: !Ref LoginIDClientSecret
+
   PreSignUp:
     Type: AWS::Serverless::Function
     Properties:
@@ -49,10 +69,12 @@ Resources:
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
           LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
   PreSignUpPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -91,10 +113,12 @@ Resources:
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
           LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
   CreateAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -114,10 +138,12 @@ Resources:
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
           LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
   VerifyAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -144,7 +170,8 @@ Resources:
             Action: "secretsmanager:GetSecretValue"
             Effect: Allow
             Principal:
-              AWS: !GetAtt LambdaExecutionRole.Arn
+              Service:
+                - "lambda.amazonaws.com"
 
   RestAPI:
     Type: AWS::ApiGateway::RestApi
@@ -631,6 +658,10 @@ Resources:
               Action:
                 - cognito-idp:AdminUpdateUserAttributes
               Resource: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref LoginIDClientSecret
       Architectures:
         - x86_64
       EventInvokeConfig:

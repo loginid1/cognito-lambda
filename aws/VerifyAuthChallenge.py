@@ -1,23 +1,23 @@
+import boto3
 import json
 import re
 import requests
 
 from loginid import LoginID
-from loginid.utils import LoginIDError
 from os import environ
 
-BASE_URL = environ.get("LOGINID_BASE_URL") or ""
-PRIVATE_KEY = re.sub(
-    r"\\n",
-    r"\n",
-    environ.get("PRIVATE_KEY") or ""
-)
 
-lid = LoginID(BASE_URL, PRIVATE_KEY)
+LOGINID_BASE_URL = environ.get("LOGINID_BASE_URL") or ""
+LOGINID_SECRET_NAME = environ.get("LOGINID_SECRET_NAME") or ""
+
+secretsmanager = boto3.client("secretsmanager")
+
 
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
     request, response = event["request"], event["response"]
+
+    lid = LoginID(LOGINID_BASE_URL, get_private_key())
 
     try:
         username = event["userName"]
@@ -47,3 +47,14 @@ def lambda_handler(event: dict, _: dict) -> dict:
         print(e)
         response["answerCorrect"] = False
         return event
+
+
+def get_private_key() -> str:
+    secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
+    private_key = secret["SecretString"]
+    private_key = re.sub(
+        r"\\n",
+        r"\n",
+        private_key,
+    )
+    return private_key

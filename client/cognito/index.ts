@@ -27,7 +27,8 @@ export const initalLoad = async () => {
         UserPoolId: config.COGNITO_USER_POOL_ID,
         ClientId: config.COGNITO_CLIENT_ID,
       });
-    });
+    })
+    .catch(console.error);
 };
 
 export const getCurrentUser = (): CognitoUser | null => {

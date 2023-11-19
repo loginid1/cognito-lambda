@@ -14,6 +14,7 @@ from loginid.utils import LoginIDError
 
 BASE_URL = environ.get("LOGINID_BASE_URL") or ""
 CLIENT_ID = environ.get("LOGINID_CLIENT_ID") or ""
+LOGINID_SECRET_NAME = environ.get("LOGINID_SECRET_NAME") or ""
 PRIVATE_KEY = re.sub(
     r"\\n",
     r"\n",
@@ -22,14 +23,6 @@ PRIVATE_KEY = re.sub(
 COGNITO_REGION_NAME = environ.get("COGNITO_REGION_NAME") or ""
 COGNITO_CLIENT_ID = environ.get("COGNITO_CLIENT_ID") or ""
 COGNITO_USER_POOL_ID = environ.get("COGNITO_USER_POOL_ID") or ""
-SES_SENDER_EMAIL = environ.get("SES_SENDER_EMAIL") or ""
-
-lid = LoginID(BASE_URL, PRIVATE_KEY)
-aws_cognito = boto3.client(
-    "cognito-idp",
-    region_name=COGNITO_REGION_NAME,
-)
-ses_client = boto3.client("ses", region_name=COGNITO_REGION_NAME)
 
 # paths
 FIDO2_REGISTER_INIT_PATH = "/fido2/register/init"
@@ -40,6 +33,13 @@ FIDO2_CREATE_COMPLETE_PATH = "/fido2/create/complete"
 CREDENTIALS_LIST_PATH = "/credentials/list"
 CREDENTIALS_RENAME_PATH = "/credentials/rename"
 CREDENTIALS_REVOKE_PATH = "/credentials/revoke"
+
+aws_cognito = boto3.client(
+    "cognito-idp",
+    region_name=COGNITO_REGION_NAME,
+)
+secretsmanager = boto3.client("secretsmanager")
+
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
@@ -55,6 +55,10 @@ def lambda_handler(event: dict, _: dict) -> dict:
     body = event.get("body") or "{}"
 
     try:
+        # get private key from kms from secret name
+        lid = LoginID(BASE_URL, get_private_key())
+
+        # handle claims and paths
         claims = {}
         paths = [
             FIDO2_REGISTER_INIT_PATH,
@@ -63,10 +67,13 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         if path not in paths:
             request_context = event.get("requestContext")
+
             if request_context is None:
                 raise Exception("requestContext is missing")
+
             authorizer = request_context.get("authorizer") or {}
             claims = authorizer.get("claims")
+
             if claims is None:
                 response = {
                     "statusCode": 401,
@@ -344,3 +351,14 @@ def process_loginid_credential_response(lid_response):
     response = {}
     response["credential"] = lid_response["auth_cred"]
     return response
+
+
+def get_private_key() -> str:
+    secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
+    private_key = secret["SecretString"]
+    private_key = re.sub(
+        r"\\n",
+        r"\n",
+        private_key,
+    )
+    return private_key
