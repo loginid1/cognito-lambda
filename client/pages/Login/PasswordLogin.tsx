@@ -60,9 +60,6 @@ const PasswordLogin = function ({
         >
           Login with passwordless
         </Button>
-        <Button classNames={{ root: classes.button }} variant="outline">
-          Login with magic link
-        </Button>
         <UnstyledButton
           onClick={() => handlerWhichLogin(Login.RegisterPasswordless)}
           className={classes.signupButton}

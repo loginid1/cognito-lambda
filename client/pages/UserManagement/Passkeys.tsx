@@ -49,7 +49,7 @@ const Passkeys = function () {
 
   const handleRename = async (id: string, name: string) => {
     const newData = passkeys.map((passkey) => {
-      return passkey.uuid === id ? { ...passkey, name } : passkey;
+      return passkey.cred_uuid === id ? { ...passkey, name } : passkey;
     });
     setPasskeys(newData);
   };
@@ -61,7 +61,9 @@ const Passkeys = function () {
       //no await
       revokeCredential(passkeyID, token);
 
-      const newData = passkeys.filter((passkey) => passkey.uuid !== passkeyID);
+      const newData = passkeys.filter(
+        (passkey) => passkey.cred_uuid !== passkeyID
+      );
       setPasskeys(newData);
       setError("");
     } catch (e: any) {
@@ -108,13 +110,13 @@ const Passkeys = function () {
       >
         {passkeys.map((passkey, index) => (
           <Passkey
-            key={passkey.name + index}
-            id={passkey.uuid}
-            name={passkey.name}
+            key={passkey.cred_name || "Passkey" + index}
+            id={passkey.cred_uuid}
+            name={passkey.cred_name || "Passkey"}
             handleFocus={handleFocus}
             handleRename={handleRename}
             handleOpenModal={handleOpenDeleteModal}
-            shouldFocus={tempPasskeyID === passkey.uuid}
+            shouldFocus={tempPasskeyID === passkey.cred_uuid}
           />
         ))}
       </Accordion>
@@ -136,7 +138,8 @@ const Passkeys = function () {
       {/* Modal Delete Passkey */}
       <DeletePasskeyModal
         passkeyName={
-          passkeys.find((passkey) => passkey.uuid === passkeyID)?.name || ""
+          passkeys.find((passkey) => passkey.cred_uuid === passkeyID)
+            ?.cred_name || ""
         }
         onClose={() => setOpenedDeletePasskey(false)}
         opened={openedDeletePasskey}

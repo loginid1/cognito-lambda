@@ -8,8 +8,9 @@ import requests
 
 from botocore.exceptions import ClientError
 from os import environ
-from loginid import LoginIdManagement
-from loginid.core import LoginIDError
+from loginid import LoginID
+from loginid.utils import LoginIDError
+
 
 BASE_URL = environ.get("LOGINID_BASE_URL") or ""
 CLIENT_ID = environ.get("LOGINID_CLIENT_ID") or ""
@@ -20,9 +21,10 @@ PRIVATE_KEY = re.sub(
 )
 COGNITO_REGION_NAME = environ.get("COGNITO_REGION_NAME") or ""
 COGNITO_CLIENT_ID = environ.get("COGNITO_CLIENT_ID") or ""
+COGNITO_USER_POOL_ID = environ.get("COGNITO_USER_POOL_ID") or ""
 SES_SENDER_EMAIL = environ.get("SES_SENDER_EMAIL") or ""
 
-lid = LoginIdManagement(CLIENT_ID, PRIVATE_KEY, BASE_URL)
+lid = LoginID(BASE_URL, PRIVATE_KEY)
 aws_cognito = boto3.client(
     "cognito-idp",
     region_name=COGNITO_REGION_NAME,
@@ -38,8 +40,6 @@ FIDO2_CREATE_COMPLETE_PATH = "/fido2/create/complete"
 CREDENTIALS_LIST_PATH = "/credentials/list"
 CREDENTIALS_RENAME_PATH = "/credentials/rename"
 CREDENTIALS_REVOKE_PATH = "/credentials/revoke"
-
-MAGIC_LINK_INIT_PATH = "/authenticate/link"
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
@@ -59,7 +59,6 @@ def lambda_handler(event: dict, _: dict) -> dict:
         paths = [
             FIDO2_REGISTER_INIT_PATH,
             FIDO2_REGISTER_COMPLETE_PATH,
-            MAGIC_LINK_INIT_PATH,
         ]
 
         if path not in paths:
@@ -82,8 +81,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
             # lower case username or make it empty string
             username = username.lower() if username else ""
 
-            init_response = lid.register_fido2_init(username)
-            attestation_payload = init_response["attestation_payload"]
+            attestation_payload = lid.register_fido2_init(username)
 
             response = {
                 "statusCode": 200,
@@ -93,12 +91,12 @@ def lambda_handler(event: dict, _: dict) -> dict:
             return response
 
         elif path == FIDO2_REGISTER_COMPLETE_PATH:
-            username, email, credential_name, attestation_payload = parse_json(
+            username, email, credential_name, attestation_response = parse_json(
                 body, 
                 "username", 
                 "email", 
                 "credential_name",
-                "attestation_payload"
+                "attestation_response"
             )
             # lower case username
             username = username.lower() if username else ""
@@ -111,8 +109,8 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
             # pass attestation payload to PreSignUp lambda
             validation_attestation_payload = {
-                "Name": "attestation_payload",
-                "Value": json.dumps(attestation_payload),
+                "Name": "attestation_response",
+                "Value": json.dumps(attestation_response),
             }
 
             meta_data = {
@@ -129,6 +127,21 @@ def lambda_handler(event: dict, _: dict) -> dict:
                 ClientMetadata=meta_data,
             )
 
+            # get user info on LoginID
+            loginid_user = lid.post("/backend-api/users/username", { "username": username })
+
+            # update custom:loginid_user_id attribute
+            aws_cognito.admin_update_user_attributes(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=username,
+                UserAttributes=[
+                    {
+                        "Name": "custom:loginid_user_id",
+                        "Value": loginid_user["user_uuid"],
+                    },
+                ],
+            )
+
             response = {
                 "statusCode": 200,
                 "headers": headers,
@@ -139,20 +152,31 @@ def lambda_handler(event: dict, _: dict) -> dict:
         elif path == FIDO2_CREATE_INIT_PATH:
             username = claims["cognito:username"]
 
-            user = {}
+            loginid_user = {}
             try:
-                user = lid.get_user(username)
+                loginid_user = lid.post("/backend-api/users/username", { "username": username })
             except LoginIDError as e:
+                print(e)
                 # check if user not found
-                if e.status_code == 404 and e.error_code == "user_not_found":
-                    user = lid.add_user_without_credentials(username)
+                if e.status == 404 and e.code == "unknown_user":
+                    response = lid.create_user_without_credential(username)
+                    user = response["user"]
+
+                    # update custom:loginid_user_id attribute
+                    aws_cognito.admin_update_user_attributes(
+                        UserPoolId=COGNITO_USER_POOL_ID,
+                        Username=username,
+                        UserAttributes=[
+                            {
+                                "Name": "custom:loginid_user_id",
+                                "Value": user["user_uuid"],
+                            },
+                        ],
+                    )
                 else:
                     raise e
 
-            loginid_user_id = user["id"]
-
-            init_response = lid.force_fido2_credential_init(loginid_user_id)
-            attestation_payload = init_response["attestation_payload"]
+            attestation_payload = lid.add_fido2_credential_init(username)
 
             response = {
                 "statusCode": 200,
@@ -163,16 +187,16 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         elif path == FIDO2_CREATE_COMPLETE_PATH:
             username = claims["cognito:username"]
-            attestation_payload, credential_name = parse_json(
+            attestation_response, credential_name = parse_json(
                 body,
-                "attestation_payload",
+                "attestation_response",
                 "credential_name"
             )
 
-            lid_response = lid.complete_add_fido2_credential(
-                attestation_payload,
+            lid_response = lid.add_fido2_credential_complete(
                 username,
-                credential_name
+                attestation_response,
+                #credential_name
             )
 
             response = {
@@ -184,16 +208,32 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         elif path == CREDENTIALS_LIST_PATH:
             username = claims["cognito:username"]
+            loginid_user_id = claims.get("custom:loginid_user_id")
+
+            if loginid_user_id is None:
+                try:
+                    loginid_user = lid.post("/backend-api/users/username", { "username": username })
+                    loginid_user_id = loginid_user["user_uuid"]
+                except LoginIDError as e:
+                    if e.status == 404:
+                        response = {
+                            "statusCode": 200,
+                            "headers": headers,
+                            "body": json.dumps(filter_credentials([], ""))
+                        }
+                        return response
+                    else:
+                        raise e
+
             type = event["queryStringParameters"].get("type", "fido2")
-            status = event["queryStringParameters"].get("status", "active")
+            # status = event["queryStringParameters"].get("status", "active")
 
-
-            lid_response = lid.get_credentials(status=status, username=username)
+            lid_response = lid.get_user_credentials(loginid_user_id)
 
             response = {
                 "statusCode": 200,
                 "headers": headers,
-                "body": json.dumps(filter_credentials(lid_response["credentials"], type))
+                "body": json.dumps(filter_credentials(lid_response, type))
             }
             return response
 
@@ -230,69 +270,6 @@ def lambda_handler(event: dict, _: dict) -> dict:
             }
             return response
 
-        elif path == MAGIC_LINK_INIT_PATH:
-            APP_URL = environ.get("APP_URL") or ""
-            # this api assumes that emails are used as usernames
-            email, = parse_json(body, "email")
-
-            # very basic check to see if username is an email.
-            # 1.should only have one @
-            # 2.should be at least 3 characters long
-            # 3.should be no longer than 256 characters
-            if email.count("@") != 1 or len(email) < 3 or len(email) > 256:
-                raise Exception("Invalid email")
-
-            # generate short code otp from loginid
-            # otp data is stored on loginid side
-            lid_response = lid.generate_code("long", "add_credential", False, username=email)
-            code = lid_response["code"]
-
-            link = APP_URL + "?email=" + email
-            link += "&code=" + code
-
-            html = f"""
-            <html>
-                <head></head>
-                <body>
-                    <p>
-                        Please login with FIDO2 using the following link:
-                        Copy this link and paste in your web browser:
-                        {link}
-                    </p>
-                </body>
-            </html>
-            """
-            
-            # send email with ses_client
-            ses_client.send_email(
-                Destination={
-                    "ToAddresses": [email]
-                },
-                Message={
-                    "Body": {
-                        "Html": {
-                            "Charset": "UTF-8",
-                            "Data": html
-                        },
-                        "Text": {
-                            "Charset": "UTF-8",
-                            "Data": "Please login with FIDO2 using the following link: " + link
-                        },
-                    },
-                    "Subject": {
-                        "Charset": "UTF-8",
-                        "Data": "FIDO2 Login Link",
-                    },
-                },
-                Source=SES_SENDER_EMAIL,
-            )
-
-            response = {
-                "statusCode": 204,
-                "headers": headers,
-            }
-            return response
-
         else:
             response = {
                 "statusCode": 404,
@@ -315,9 +292,9 @@ def lambda_handler(event: dict, _: dict) -> dict:
     except LoginIDError as e:
         print(e)
         response = {
-            "statusCode": e.status_code,
+            "statusCode": 400,
             "headers": headers,
-            "body": json.dumps({"message": e.message, "error_code": e.error_code})
+            "body": json.dumps({"message": e.message, "error_code": e.code})
         }
         return response
 
@@ -359,32 +336,11 @@ def filter_credentials(credentials, type: str):
     if type == "":
         data["credentials"] = credentials
         return data
-    data["credentials"] = [credential for credential in credentials if credential["type"] == type]
+    data["credentials"] = [credential for credential in credentials if credential["cred_type"] == type]
     return data
 
 
 def process_loginid_credential_response(lid_response):
     response = {}
-    response["credential"] = lid_response["credential"]
-    return response
-
-def loginid_raw_request(url: str, request_body: dict, token = None):
-    headers = {
-    "Content-Type": "application/json",
-    }
-
-    if token != None:
-        headers["Authorization"] = "Bearer " + token
-
-    response = requests.post(url, headers=headers, data=json.dumps(request_body))
-
-    # if status code is not 200, raise LoginIdError
-    if response.status_code != 200:
-        lid_response_body = json.loads(response.text)
-        print(response.text)
-        raise LoginIDError(
-            response.status_code,
-            lid_response_body["code"],
-            lid_response_body["message"],
-        )
+    response["credential"] = lid_response["auth_cred"]
     return response

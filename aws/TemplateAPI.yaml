@@ -1,6 +1,131 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserPoolName: !Sub ${AWS::StackName}-UserPool
+      Schema:
+        - Name: loginid_user_id
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+      AutoVerifiedAttributes:
+        - email
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUp.Arn
+        DefineAuthChallenge: !GetAtt DefineAuthChallenge.Arn
+        CreateAuthChallenge: !GetAtt CreateAuthChallenge.Arn
+        VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallenge.Arn
+        
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: loginid-app
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+      ExplicitAuthFlows:
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      WriteAttributes:
+        - email
+        - name
+      ReadAttributes:
+        - email
+        - name
+        - custom:loginid_user_id
+
+  PreSignUp:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PreSignUp
+      InlineCode:
+        print("Hey there")
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+  PreSignUpPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt PreSignUp.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !GetAtt UserPool.Arn
+
+  DefineAuthChallenge:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
+      InlineCode:
+        print("Hey there")
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+  DefineAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt DefineAuthChallenge.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !GetAtt UserPool.Arn
+
+  CreateAuthChallenge:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
+      InlineCode:
+        print("Hey there")
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+  CreateAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt CreateAuthChallenge.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !GetAtt UserPool.Arn
+      
+  VerifyAuthChallenge:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
+      InlineCode:
+        print("Hey there")
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+  VerifyAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt VerifyAuthChallenge.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !GetAtt UserPool.Arn
+
   RestAPI:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -410,7 +535,10 @@ Resources:
               x-amazon-apigateway-authorizer:
                 type: "cognito_user_pools"
                 providerARNs:
-                  - !Ref UserPoolArn
+                  - Fn::GetAtt:
+                      - UserPool
+                      - Arn
+
                 #Fn::Transform:
                   #Name: AWS::Include
                   #Parameters:
@@ -454,7 +582,9 @@ Resources:
       IdentitySource: method.request.header.Authorization
       Name: CognitoAuthorizer
       ProviderARNs:
-        - !Ref UserPoolArn
+        - Fn::GetAtt:
+            - UserPool
+            - Arn
       RestApiId: !Ref RestAPI
       Type: COGNITO_USER_POOLS
 
@@ -466,16 +596,26 @@ Resources:
       MemorySize: 128
       Timeout: 3
       Handler: index.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.8
       Environment:
         Variables:
           COGNITO_CLIENT_ID: !Ref UserPoolClient
+          COGNITO_USER_POOL_ID: !Ref UserPool
           COGNITO_REGION_NAME: !Ref AWS::Region
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
           PRIVATE_KEY: !Ref LOGINIDPrivateKey
       Policies:
-        - SESCrudPolicy:
-            IdentityName: SES Sender
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'ses:SendEmail'
+                - 'ses:SendRawEmail'
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}
       Architectures:
         - x86_64
       EventInvokeConfig:
@@ -485,8 +625,6 @@ Resources:
         Size: 512
       InlineCode:
         print("Hey there")
-      #Layers:
-        #- !Ref PythonSDK
 
   lambdaApiGatewayInvoke:
     Type: AWS::Lambda::Permission
@@ -509,10 +647,3 @@ Parameters:
     Type: String
     NoEcho: true
     Description: "Private key needed for generating authorization token required for LoginID service"
-  UserPoolClient:
-    Type: String
-    Description: "The given user pool ID"
-  UserPoolArn:
-    Type: String
-    Description: "ARN of the user pool associated with UserPoolClient"
-    Default: arn:aws:cognito-idp:us-west-1:937010351612:userpool/us-west-1_rXI17nqHo
