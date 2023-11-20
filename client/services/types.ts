@@ -1,8 +1,7 @@
 export interface Credential {
-  uuid: string;
-  type?: string;
-  status: string;
-  name: string;
+  cred_uuid: string;
+  cred_type?: string;
+  cred_name?: string;
   created_at?: string;
   updated_at?: string;
 }

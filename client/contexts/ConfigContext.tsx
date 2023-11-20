@@ -48,8 +48,10 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
     const fetchConfig = async () => {
       try {
         await initalLoad();
+        /*
         const _config = await getConfig();
         const config = defaultedConfig(_config);
+		 */
 
         //cache config
         ConfigStorage.set(config);

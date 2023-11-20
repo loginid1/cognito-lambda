@@ -27,7 +27,8 @@ export const initalLoad = async () => {
         UserPoolId: config.COGNITO_USER_POOL_ID,
         ClientId: config.COGNITO_CLIENT_ID,
       });
-    });
+    })
+    .catch(console.error);
 };
 
 export const getCurrentUser = (): CognitoUser | null => {
@@ -199,78 +200,10 @@ export const authenticate = (
 
     const callbackObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
-        //dummy response to select FIDO2 authentication
-        const clientMetadata = {
-          authentication_type: "FIDO2",
-        };
-        if (challengParams?.challenge === "AUTH_PARAMS") {
-          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
-          return;
-        }
-
         //FIDO2 authentication
         const publicKey = JSON.parse(challengParams.public_key);
         const result = await webauthn.get(publicKey);
-        const assertion = {
-          ...result.assertion_payload,
-        };
-        user.sendCustomChallengeAnswer(
-          JSON.stringify({ assertion }),
-          this,
-          clientMetadata
-        );
-      },
-
-      onSuccess: function (_) {
-        console.log(_);
-        res(user);
-      },
-
-      onFailure: function (err) {
-        rej(err);
-      },
-    };
-
-    const callbackPhoneOTPObj: IAuthenticationCallback = {
-      customChallenge: async function (challengParams: any) {
-        const clientMetadata = {
-          authentication_type: "PHONE_OTP",
-        };
-
-        if (challengParams?.challenge === "AUTH_PARAMS") {
-          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
-          return;
-        } else if (challengParams?.type === "PHONE_OTP") {
-          res(user);
-        } else {
-          throw new Error("Invalid challenge");
-        }
-      },
-
-      onSuccess: function (_) {
-        console.log(_);
-        res(user);
-      },
-
-      onFailure: function (err) {
-        rej(err);
-      },
-    };
-
-    const callbackMagicLinkObj: IAuthenticationCallback = {
-      customChallenge: async function (challengParams: any) {
-        const clientMetadata = {
-          authentication_type: "MAGIC_LINK",
-        };
-
-        if (challengParams?.challenge === "AUTH_PARAMS") {
-          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
-          return;
-        } else if (challengParams?.type === "MAGIC_LINK") {
-          user.sendCustomChallengeAnswer(answer, this, clientMetadata);
-        } else {
-          throw new Error("Invalid challenge");
-        }
+        user.sendCustomChallengeAnswer(JSON.stringify({ ...result }), this);
       },
 
       onSuccess: function (_) {
@@ -287,18 +220,6 @@ export const authenticate = (
       case "FIDO2": {
         user.setAuthenticationFlowType("CUSTOM_AUTH");
         user.initiateAuth(authenticationDetails, callbackObj);
-        break;
-      }
-
-      case "PHONE_OTP": {
-        user.setAuthenticationFlowType("CUSTOM_AUTH");
-        user.initiateAuth(authenticationDetails, callbackPhoneOTPObj);
-        break;
-      }
-
-      case "MAGIC_LINK": {
-        user.setAuthenticationFlowType("CUSTOM_AUTH");
-        user.initiateAuth(authenticationDetails, callbackMagicLinkObj);
         break;
       }
 

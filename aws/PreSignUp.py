@@ -1,34 +1,20 @@
+import boto3
 import json
 import re
 
-from loginid import LoginIdManagement
+from loginid import LoginID
 from os import environ
 
-BASE_URL = environ.get("LOGINID_BASE_URL") or ""
-CLIENT_ID = environ.get("LOGINID_CLIENT_ID") or ""
-PRIVATE_KEY = re.sub(
-    r"\\n",
-    r"\n",
-    environ.get("PRIVATE_KEY") or ""
-)
+LOGINID_BASE_URL = environ.get("LOGINID_BASE_URL") or ""
+LOGINID_SECRET_NAME = environ.get("LOGINID_SECRET_NAME") or ""
 
-lid = LoginIdManagement(CLIENT_ID, PRIVATE_KEY, BASE_URL)
-
-class CustomError(Exception):
-    """
-    Raises not found error
-    """
-    def __init__(self, message: str) -> None:
-        self.message = message
-
-    def __str__(self) -> str:
-        if not self.message:
-            return "Not found"
-        return self.message
+secretsmanager = boto3.client("secretsmanager")
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
+
+    lid = LoginID(LOGINID_BASE_URL, get_private_key())
 
     request = event["request"]
     username = event["userName"]
@@ -39,32 +25,39 @@ def lambda_handler(event: dict, _: dict) -> dict:
     meta_data = request["clientMetadata"]
 
     if not meta_data.get("register_type"):
-        raise CustomError("Register type not found")
+        raise Exception("Register type not found")
 
     register_type = meta_data["register_type"]
 
-    # Register LoginID user without credentials
-    if register_type == "PASSWORD":
-        lid.add_user_without_credentials(username)
-        return event
-
     if register_type == "FIDO2":
+        print("At FIDO2")
         validation_data = request["validationData"]
 
-        if not validation_data.get("attestation_payload"):
-            raise CustomError("Attestation not found")
+        if not validation_data.get("attestation_response"):
+            raise Exception("Attestation not found")
 
-        attestation_payload = json.loads(validation_data["attestation_payload"])
-        credential_name = meta_data.get("credential_name", "")
+        attestation_response = json.loads(validation_data["attestation_response"])
+        #credential_name = meta_data.get("credential_name", "")
 
-        loginid_res = lid.register_fido2_complete(username, attestation_payload, credential_name)
-
-        print(loginid_res)
+        try: 
+            loginid_res = lid.register_fido2_complete(username, attestation_response)
+        except Exception as e:
+            print(e)
+            raise Exception("Failed to register")
 
         if not loginid_res["is_authenticated"]:
-            raise CustomError("Failed to register")
+            raise Exception("Failed to register")
 
-        print(event)
-        return event
+    print(event)
+    return event
 
-    raise CustomError("Register type not supported")
+
+def get_private_key() -> str:
+    secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
+    private_key = secret["SecretString"]
+    private_key = re.sub(
+        r"\\n",
+        r"\n",
+        private_key,
+    )
+    return private_key

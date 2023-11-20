@@ -61,7 +61,7 @@ export const renameCredential = async (
   name: string,
   token: string
 ) => {
-  const response = post<CredentialData>(
+  const response = post<null>(
     BASE_URL + "/credentials/rename",
     {
       credential_uuid: credentialUUID,
@@ -76,7 +76,7 @@ export const revokeCredential = async (
   credentialUUID: string,
   token: string
 ) => {
-  const response = post<CredentialData>(
+  const response = post<null>(
     BASE_URL + "/credentials/revoke",
     { credential_uuid: credentialUUID },
     { Authorization: "Bearer " + token }

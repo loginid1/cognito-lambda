@@ -4,21 +4,27 @@ export type JSON = string;
 export type Base64 = string;
 
 export interface PublicKeyAttestationCredential {
-  attestation_payload: {
-    credential_uuid: string;
+  attestation_response: {
     challenge: string;
-    credential_id: Base64;
-    client_data: Base64;
-    attestation_data: Base64;
+    id: Base64;
+    type: string;
+    response: {
+      attestationObject: Base64;
+      clientDataJSON: Base64;
+    };
   };
 }
 
 export interface PublicKeyAssertionCredential {
-  assertion_payload: {
-    credential_id: Base64;
-    client_data: Base64;
-    authenticator_data: Base64;
-    signature: Base64;
+  assertion_response: {
+    challenge: string;
+    id: Base64;
+    type: string;
+    response: {
+      clientDataJSON: Base64;
+      authenticatorData: Base64;
+      signature: Base64;
+    };
   };
 }
 
@@ -47,12 +53,14 @@ export const create = async (
   const response = credential.response as AuthenticatorAttestationResponse;
 
   const attestation = {
-    attestation_payload: {
-      credential_uuid: publicKey.credential_uuid,
+    attestation_response: {
       challenge: challenge,
-      credential_id: bufferToBase64(credential.rawId),
-      client_data: bufferToBase64(response.clientDataJSON),
-      attestation_data: bufferToBase64(response.attestationObject),
+      id: bufferToBase64(credential.rawId),
+      type: credential.type,
+      response: {
+        attestationObject: bufferToBase64(response.attestationObject),
+        clientDataJSON: bufferToBase64(response.clientDataJSON),
+      },
     },
   };
 
@@ -62,7 +70,8 @@ export const create = async (
 export const get = async (
   publicKey: any
 ): Promise<PublicKeyAssertionCredential> => {
-  publicKey.challenge = base64ToBuffer(publicKey.challenge);
+  const challenge = publicKey.challenge;
+  publicKey.challenge = base64ToBuffer(challenge);
 
   if (publicKey.allowCredentials) {
     for (const credential of publicKey.allowCredentials) {
@@ -81,11 +90,16 @@ export const get = async (
   const response = credential.response as AuthenticatorAssertionResponse;
 
   const assertion = {
-    assertion_payload: {
-      credential_id: bufferToBase64(credential.rawId),
-      client_data: bufferToBase64(response.clientDataJSON),
-      authenticator_data: bufferToBase64(response.authenticatorData),
-      signature: bufferToBase64(response.signature),
+    assertion_response: {
+      challenge: challenge,
+      id: bufferToBase64(credential.rawId),
+      type: credential.type,
+      response: {
+        clientDataJSON: bufferToBase64(response.clientDataJSON),
+        signature: bufferToBase64(response.signature),
+        authenticatorData: bufferToBase64(response.authenticatorData),
+        //userHandle: bufferToBase64(response.userHandle),
+      },
     },
   };
 

@@ -44,13 +44,6 @@ const PasswordlessLogin = function ({
           Login with passkey
         </Button>
         <Button
-          onClick={() => handlerWhichLogin(Login.LoginMagicLink)}
-          classNames={{ root: classes.button }}
-          variant="outline"
-        >
-          Login with magic link
-        </Button>
-        <Button
           onClick={() => handlerWhichLogin(Login.LoginPassword)}
           classNames={{ root: classes.button }}
           variant="outline"
