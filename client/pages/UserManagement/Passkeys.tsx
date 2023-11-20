@@ -49,7 +49,9 @@ const Passkeys = function () {
 
   const handleRename = async (id: string, name: string) => {
     const newData = passkeys.map((passkey) => {
-      return passkey.cred_uuid === id ? { ...passkey, name } : passkey;
+      return passkey.cred_uuid === id
+        ? { ...passkey, cred_name: name }
+        : passkey;
     });
     setPasskeys(newData);
   };
@@ -110,7 +112,7 @@ const Passkeys = function () {
       >
         {passkeys.map((passkey, index) => (
           <Passkey
-            key={passkey.cred_name || "Passkey" + index}
+            key={passkey.cred_name || index}
             id={passkey.cred_uuid}
             name={passkey.cred_name || "Passkey"}
             handleFocus={handleFocus}

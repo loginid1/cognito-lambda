@@ -245,35 +245,35 @@ def lambda_handler(event: dict, _: dict) -> dict:
             return response
 
         elif path == CREDENTIALS_RENAME_PATH:
-            username = claims["cognito:username"]
+            loginid_user_id = claims.get("custom:loginid_user_id")
             credential_uuid, name = parse_json(body, "credential_uuid", "name")
 
-            lid_response = lid.rename_credential(
-                cred_id=credential_uuid,
-                updated_name=name,
-                username=username
+            lid_response = lid.rename_user_credential(
+                cred_uuid=credential_uuid,
+                new_name=name,
+                user_uuid=loginid_user_id
             )
 
             response = {
                 "statusCode": 200,
                 "headers": headers,
-                "body": json.dumps(process_loginid_credential_response(lid_response))
+                "body": True
             }
             return response
 
         elif path == CREDENTIALS_REVOKE_PATH:
-            username = claims["cognito:username"]
+            loginid_user_id = claims.get("custom:loginid_user_id")
             credential_uuid, = parse_json(body, "credential_uuid")
 
-            lid_response = lid.revoke_credential(
-                cred_id=credential_uuid,
-                username=username
+            lid.delete_user_credential(
+                cred_uuid=credential_uuid,
+                user_uuid=loginid_user_id
             )
 
             response = {
                 "statusCode": 200,
                 "headers": headers,
-                "body": json.dumps(process_loginid_credential_response(lid_response))
+                "body": True
             }
             return response
 
