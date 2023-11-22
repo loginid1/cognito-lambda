@@ -15,8 +15,8 @@ const EmailVerification = ({ email, handlerWhichLogin }: CommonFormProps) => {
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      await cognito.confirmSignUp(email.toLowerCase(), code);
-      handlerWhichLogin(Login.CompleteRegistration);
+      await cognito.confirmSignUp(email, code);
+      handlerWhichLogin(Login.RegisterPasswordless);
     } catch (e: any) {
       setError(e.message);
     }

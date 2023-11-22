@@ -1,6 +1,17 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Resources:
+  PythonSDK:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content:
+        S3Bucket: cognito-loginid
+        S3Key: python-sdk.zip
+      Description: Python layer with LoginID SDK compatible for linux
+      CompatibleRuntimes:
+      - python3.8
+      LayerName: PythonSDK
+
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -15,7 +26,6 @@ Resources:
       AutoVerifiedAttributes:
         - email
       LambdaConfig:
-        PreSignUp: !GetAtt PreSignUp.Arn
         DefineAuthChallenge: !GetAtt DefineAuthChallenge.Arn
         CreateAuthChallenge: !GetAtt CreateAuthChallenge.Arn
         VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallenge.Arn
@@ -36,42 +46,48 @@ Resources:
       ReadAttributes:
         - email
         - name
-        - custom:loginid_user_id
 
-  PreSignUp:
-    Type: AWS::Serverless::Function
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-PreSignUp
-      InlineCode:
-        print("Hey there")
-      Handler: index.lambda_handler
-      Runtime: python3.8
-      MemorySize: 1024
-      Timeout: 30
-      Tracing: Active
-      Environment:
-        Variables:
-          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
-          PRIVATE_KEY: !Ref LOGINIDPrivateKey
-  PreSignUpPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt PreSignUp.Arn
-      Principal: cognito-idp.amazonaws.com
-      Action: lambda:InvokeFunction
-      SourceArn: !GetAtt UserPool.Arn
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaSecretsPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref LoginIDClientSecret
+        - PolicyName: LambdaLogsPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
 
   DefineAuthChallenge:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
-      InlineCode:
-        print("Hey there")
+      CodeUri: s3://cognito-loginid/lambdas/DefineAuthChallenge.zip
       Handler: index.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
+
   DefineAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -84,17 +100,20 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
-      InlineCode:
-        print("Hey there")
+      CodeUri: s3://cognito-loginid/lambdas/CreateAuthChallenge.zip
       Handler: index.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref PythonSDK
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
-          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+          LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
   CreateAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -107,17 +126,20 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
-      InlineCode:
-        print("Hey there")
+      CodeUri: s3://cognito-loginid/lambdas/VerifyAuthChallenge.zip
       Handler: index.lambda_handler
       Runtime: python3.8
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref PythonSDK
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
-          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+          LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
   VerifyAuthChallengePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -125,6 +147,27 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       Action: lambda:InvokeFunction
       SourceArn: !GetAtt UserPool.Arn
+
+  LoginIDClientSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}-loginid-keys
+      Description: LoginID keys
+      SecretString: !Ref LOGINIDPrivateKey
+
+  LoginIDKeysSecretPolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties:
+      SecretId: !Ref LoginIDClientSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Resource: "*"
+            Action: secretsmanager:GetSecretValue
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
 
   RestAPI:
     Type: AWS::ApiGateway::RestApi
@@ -153,7 +196,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -208,7 +251,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -261,7 +304,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -316,7 +359,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -371,7 +414,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -426,7 +469,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -483,7 +526,7 @@ Resources:
                 type: "aws_proxy"
                 httpMethod: "POST"
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LoginIDCredentialAPI.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
                 responses:
                   default:
                     statusCode: "200"
@@ -539,11 +582,6 @@ Resources:
                       - UserPool
                       - Arn
 
-                #Fn::Transform:
-                  #Name: AWS::Include
-                  #Parameters:
-                    #Location: !Sub s3://loginid-cognito/CredentialAPI.yaml
-
   ProxyResource:
     Type: "AWS::ApiGateway::Resource"
     Properties:
@@ -564,7 +602,7 @@ Resources:
             StatusCode: 200
         Uri: !Sub
           - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
-          - lambdaArn: !GetAtt LoginIDCredentialAPI.Arn
+          - lambdaArn: !GetAtt PasskeyAPI.Arn
       ResourceId: !Ref ProxyResource
       RestApiId: !Ref RestAPI
 
@@ -588,10 +626,10 @@ Resources:
       RestApiId: !Ref RestAPI
       Type: COGNITO_USER_POOLS
 
-  LoginIDCredentialAPI:
+  PasskeyAPI:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-LoginIDCredentialAPI
+      FunctionName: !Sub ${AWS::StackName}-PasskeyAPI
       Description: 
       MemorySize: 128
       Timeout: 3
@@ -603,7 +641,7 @@ Resources:
           COGNITO_USER_POOL_ID: !Ref UserPool
           COGNITO_REGION_NAME: !Ref AWS::Region
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
-          PRIVATE_KEY: !Ref LOGINIDPrivateKey
+          LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -616,6 +654,10 @@ Resources:
               Action:
                 - cognito-idp:AdminUpdateUserAttributes
               Resource: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref LoginIDClientSecret
       Architectures:
         - x86_64
       EventInvokeConfig:
@@ -623,25 +665,29 @@ Resources:
         MaximumRetryAttempts: 2
       EphemeralStorage:
         Size: 512
-      InlineCode:
-        print("Hey there")
+      Layers:
+        - !Ref PythonSDK
+      CodeUri: s3://cognito-loginid/PasskeyAPI.zip
 
   lambdaApiGatewayInvoke:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt LoginIDCredentialAPI.Arn
+      FunctionName: !GetAtt PasskeyAPI.Arn
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/*
         
 Outputs:
-  DeploymentEndpoint:
+  PasskeyAPIEndpoint:
     Value: !Sub https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/dev
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
 
 Parameters:
   LOGINIDBaseURL:
     Type: String
-    Default: "https://playground.loginid.io"
     Description: "BaseURL required for LoginID service"
   LOGINIDPrivateKey:
     Type: String

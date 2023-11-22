@@ -262,12 +262,14 @@ def lambda_handler(event: dict, _: dict) -> dict:
             return response
 
         elif path == CREDENTIALS_REVOKE_PATH:
-            loginid_user_id = claims.get("custom:loginid_user_id")
+            username = claims["cognito:username"]
             credential_uuid, = parse_json(body, "credential_uuid")
+
+            loginid_user = lid.post("/backend-api/users/username", { "username": username })
 
             lid.delete_user_credential(
                 cred_uuid=credential_uuid,
-                user_uuid=loginid_user_id
+                user_uuid=loginid_user["user_uuid"]
             )
 
             response = {

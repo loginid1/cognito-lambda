@@ -3,6 +3,7 @@ import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
 import * as cognito from "../../cognito/";
+import { Loginid } from "../../cognito/";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
@@ -20,7 +21,12 @@ const PasswordlessLogin = function ({
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const user = await cognito.authenticate(email.toLowerCase(), "", "FIDO2");
+      await Loginid.signInPasskey(email.toLowerCase());
+
+      //NOTE: get user session needs to be called to authenticate fully
+      const user = cognito.getCurrentUser();
+      await cognito.getUserSession(user);
+
       if (user) {
         login(user);
       }
@@ -51,7 +57,7 @@ const PasswordlessLogin = function ({
           Login with password
         </Button>
         <UnstyledButton
-          onClick={() => handlerWhichLogin(Login.RegisterPasswordless)}
+          onClick={() => handlerWhichLogin(Login.SignUp)}
           className={classes.signupButton}
         >
           Don't have an account? <span className={classes.signup}>Sign up</span>

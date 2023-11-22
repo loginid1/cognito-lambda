@@ -9,27 +9,21 @@ import {
   ICognitoUserData,
 } from "amazon-cognito-identity-js";
 import * as webauthn from "../webauthn/";
+import LoginIDCognitoWebSDK from "../LoginIDCognitoSDK/";
 
-import configURL from "../config/main.json";
+import { config } from "../utils/env";
 
-//this is needed because a new config file will be placed in the build folder and is unique to each deployment
-let userPool: CognitoUserPool;
-export const initalLoad = async () => {
-  return fetch(configURL)
-    .then((res) => {
-      if (res.ok) {
-        return res.json();
-      }
-      throw new Error("Failed to fetch config");
-    })
-    .then((config) => {
-      userPool = new CognitoUserPool({
-        UserPoolId: config.COGNITO_USER_POOL_ID,
-        ClientId: config.COGNITO_CLIENT_ID,
-      });
-    })
-    .catch(console.error);
-};
+const { COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID } = config;
+
+const userPool = new CognitoUserPool({
+  UserPoolId: COGNITO_USER_POOL_ID,
+  ClientId: COGNITO_CLIENT_ID,
+});
+
+export const Loginid = new LoginIDCognitoWebSDK(
+  COGNITO_USER_POOL_ID,
+  COGNITO_CLIENT_ID
+);
 
 export const getCurrentUser = (): CognitoUser | null => {
   const user = userPool.getCurrentUser();
@@ -198,12 +192,56 @@ export const authenticate = (
     const authenticationDetails = new AuthenticationDetails(authenticationData);
     const user = new CognitoUser(userData);
 
-    const callbackObj: IAuthenticationCallback = {
+    const callbackCreateObj: IAuthenticationCallback = {
       customChallenge: async function (challengParams: any) {
-        //FIDO2 authentication
+        const clientMetadata = {
+          authentication_type: "FIDO2_CREATE",
+        };
+
+        if (challengParams?.challenge === "AUTH_PARAMS") {
+          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
+          return;
+        }
+
+        //get idtoken from cognito
+        const token = await getUserIDToken(null);
+
+        const publicKey = JSON.parse(challengParams.public_key);
+        const result = await webauthn.create(publicKey);
+        user.sendCustomChallengeAnswer(
+          JSON.stringify({ ...result, id_token: token }),
+          this,
+          clientMetadata
+        );
+      },
+
+      onSuccess: function (_) {
+        console.log(_);
+        res(user);
+      },
+
+      onFailure: function (err) {
+        rej(err);
+      },
+    };
+
+    const callbackGetObj: IAuthenticationCallback = {
+      customChallenge: async function (challengParams: any) {
+        const clientMetadata = {
+          authentication_type: "FIDO2_GET",
+        };
+
+        if (challengParams?.challenge === "AUTH_PARAMS") {
+          user.sendCustomChallengeAnswer("AUTH_PARAMS", this, clientMetadata);
+          return;
+        }
         const publicKey = JSON.parse(challengParams.public_key);
         const result = await webauthn.get(publicKey);
-        user.sendCustomChallengeAnswer(JSON.stringify({ ...result }), this);
+        user.sendCustomChallengeAnswer(
+          JSON.stringify({ ...result }),
+          this,
+          clientMetadata
+        );
       },
 
       onSuccess: function (_) {
@@ -217,14 +255,20 @@ export const authenticate = (
     };
 
     switch (type) {
-      case "FIDO2": {
+      case "FIDO2_CREATE": {
         user.setAuthenticationFlowType("CUSTOM_AUTH");
-        user.initiateAuth(authenticationDetails, callbackObj);
+        user.initiateAuth(authenticationDetails, callbackCreateObj);
+        break;
+      }
+
+      case "FIDO2_GET": {
+        user.setAuthenticationFlowType("CUSTOM_AUTH");
+        user.initiateAuth(authenticationDetails, callbackGetObj);
         break;
       }
 
       case "PASSWORD": {
-        user.authenticateUser(authenticationDetails, callbackObj);
+        user.authenticateUser(authenticationDetails, callbackGetObj);
         break;
       }
     }

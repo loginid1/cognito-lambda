@@ -6,22 +6,10 @@ import {
   CredentialPhoneInitResponse,
 } from "./types";
 
-import configURL from "../config/main.json";
+import { config } from "../utils/env";
 
-//this is needed because a new config file will be placed in the build folder and is unique to each deployment
-let BASE_URL = "";
-export const initalLoad = async () => {
-  return await fetch(configURL)
-    .then((res) => {
-      if (res.ok) {
-        return res.json();
-      }
-      throw new Error("Failed to fetch config");
-    })
-    .then((config) => {
-      BASE_URL = config.CREDENTIALS_BASE_URL;
-    });
-};
+const { PASSKEY_API_BASE_URL } = config;
+const BASE_URL = PASSKEY_API_BASE_URL;
 
 //this should be the first thing to be called on page load (or close to it)
 export const getConfig = async () => {

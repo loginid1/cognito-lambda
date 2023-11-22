@@ -1,5 +1,5 @@
 {
-  "CREDENTIALS_BASE_URL": "",
-  "COGNITO_USER_POOL_ID": "",
-  "COGNITO_CLIENT_ID": ""
+  "CREDENTIALS_BASE_URL": "https://hikhjlw0ph.execute-api.us-west-1.amazonaws.com/dev",
+  "COGNITO_USER_POOL_ID": "us-west-1_cmUlogcJR",
+  "COGNITO_CLIENT_ID": "35pm27op5h11t5r2kgknkhjrhq"
 }
