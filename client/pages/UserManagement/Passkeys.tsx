@@ -12,13 +12,9 @@ import { commonError } from "../../errors";
 import { useConfig } from "../../contexts/ConfigContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserIDToken } from "../../cognito";
-import { getDefaultCredentialName } from "../../utils/credentials";
-import * as webauthn from "../../webauthn/";
-import {
-  fido2CreateComplete,
-  fido2CreateInit,
-  revokeCredential,
-} from "../../services/credentials";
+import * as cognito from "../../cognito/";
+import { Loginid } from "../../cognito";
+import { credentialList, revokeCredential } from "../../services/credentials";
 
 const Passkeys = function () {
   const { config } = useConfig();
@@ -77,21 +73,13 @@ const Passkeys = function () {
 
   const handleAddPasskey = async () => {
     try {
-      const token = await getUserIDToken(user);
-      const initRes = await fido2CreateInit(token);
-      const pulicKey = await webauthn.create(initRes);
-      const completeReqBody = {
-        ...pulicKey,
-        credential_name: getDefaultCredentialName(),
-      };
-      const completeRes = await fido2CreateComplete(completeReqBody, token);
+      const username = user?.getUsername() || "";
+      const token = await cognito.getUserIDToken(user);
 
-      //add new passkey to the list
-      if (completeRes) {
-        const { credential } = completeRes;
-        setPasskeys([...passkeys, credential]);
-      }
-      setError("");
+      await Loginid.addPasskey(username, token);
+
+      const { credentials } = await credentialList(token);
+      setPasskeys([...credentials]);
     } catch (e: any) {
       setError(commonError(e));
     }

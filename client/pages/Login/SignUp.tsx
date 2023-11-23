@@ -5,17 +5,16 @@ import ErrorText from "../../components/ErrorText";
 import { CommonFormProps, Login } from "./types";
 import { validateEmail } from "./validations";
 import { useConfig } from "../../contexts/ConfigContext";
-import * as cognito from "../../cognito/";
-import { Loginid } from "../../cognito/";
+import * as cognito from "../../cognito";
 
 export interface Props extends CommonFormProps {
-  password: string;
+  handlerPassword: (password: string) => void;
 }
 
 const PasswordlessRegister = ({
   handlerEmail,
   handlerWhichLogin,
-  password,
+  handlerPassword,
   email,
 }: Props) => {
   const { config } = useConfig();
@@ -28,11 +27,12 @@ const PasswordlessRegister = ({
     try {
       validateEmail(email);
 
-      await cognito.authenticate(email, password, "PASSWORD");
-      const token = await cognito.getUserIDToken(null);
-      await Loginid.addPasskey(email, token);
+      const password = Math.random().toString(36).slice(-16) + "X";
+      email = email.toLowerCase();
+      await cognito.signUp(email, email, password);
 
-      handlerWhichLogin(Login.CompleteRegistration);
+      handlerPassword(password);
+      handlerWhichLogin(Login.EmailVerification);
     } catch (e: any) {
       setError(e.message);
     }
@@ -50,14 +50,7 @@ const PasswordlessRegister = ({
           value={email}
         />
         <Button type="submit" size="md" classNames={{ root: classes.button }}>
-          Signup with passkey
-        </Button>
-        <Button
-          onClick={() => handlerWhichLogin(Login.RegisterPassword)}
-          classNames={{ root: classes.button }}
-          variant="outline"
-        >
-          Signup with password
+          Continue
         </Button>
         <UnstyledButton
           onClick={() => handlerWhichLogin(Login.LoginPasswordless)}

@@ -12,6 +12,7 @@ import PasswordRegister from "./PasswordRegister";
 import MagicLinkLogin from "./MagicLinkLogin";
 import EmailVerification from "./EmailVerification";
 import RegisterComplete from "./RegisterComplete";
+import SignUp from "./SignUp";
 import Footer from "./Footer";
 import { useConfig } from "../../contexts/ConfigContext";
 
@@ -19,11 +20,15 @@ const Login = function () {
   const { config } = useConfig();
   const { classes } = useStyle(config);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [whichLogin, setWhichLogin] = useState(LoginEnum.LoginPasswordless);
 
   const handlerEmail = inputHandler(setEmail);
   const handlerWhichLogin = (value: LoginEnum) => {
     return setWhichLogin(value);
+  };
+  const handlerPassword = (password: string) => {
+    setPassword(password);
   };
 
   let Form;
@@ -53,6 +58,7 @@ const Login = function () {
         <PasswordlessRegister
           handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
+          password={password}
           email={email}
         />
       );
@@ -93,6 +99,17 @@ const Login = function () {
         <MagicLinkLogin
           handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
+          email={email}
+        />
+      );
+      break;
+
+    case LoginEnum.SignUp:
+      Form = (
+        <SignUp
+          handlerEmail={handlerEmail}
+          handlerWhichLogin={handlerWhichLogin}
+          handlerPassword={handlerPassword}
           email={email}
         />
       );
