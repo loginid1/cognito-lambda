@@ -82,7 +82,7 @@ def get_private_key() -> str:
 
 def verify_cognito_id_token(event: dict, token: str):
     if not token:
-        raise Exception("failed to get id_token")
+        raise Exception("id_token is missing")
 
     region = event["region"]
     userpool_id = event["userPoolId"]

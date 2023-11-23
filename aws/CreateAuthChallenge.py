@@ -25,7 +25,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     # if session does not exist or if session length is 0 then create dummy challenge
     # to obtain authentication type
-    if not session or len(session) == 0:
+    if not session:
         response["challengeMetadata"] = "AUTH_PARAMS"
         response["privateChallengeParameters"] = {
             "challenge": "AUTH_PARAMS"

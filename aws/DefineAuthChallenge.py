@@ -20,7 +20,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
     # if sessions exist
     if len(session):
         # metadata will be used to determine the type of authentication
-        client_metadata = request.get("clientMetadata", {})
+        client_metadata = request.get("clientMetadata")
         if not client_metadata:
             raise Exception("Client metadata not found")
 
