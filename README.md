@@ -4,9 +4,9 @@ An integration of Loginid and AWS Cognito authentication with custom authenticat
 
 ## Requirements
 
-- Python (Backend)
 - NodeJS (Frontend)
 - Cognito User Pool
+- AWS service
 - Loginid Admin Account
 
 ## Features
@@ -20,99 +20,110 @@ An integration of Loginid and AWS Cognito authentication with custom authenticat
 
 ## LoginID Set-Up
 
-Your going to need a confidential backend client.
+You need to the following items with LoginID in order to run this integration:
 
-1. Head over to https://playground.loginid.io and login into your account.
-2. Click on `Add Application` and create a `Backend` client.
+- Web Tenant (Non-OIDC) base URL
+- Tenant level ES256 private key needed to call backend services
 
-![Backend Client](./images/choose-client.jpg)
+Here are some general steps:
 
-3. Fill out the name of the application (could be anything) and the website URL. This is where your application is currently hosted. If working in development under `localhost`, then entering `http://localhost` is a valid value. You would have to create a seperate client for every different host domain. Click `Create`.
-
-![Backend Info](./images/backend-info.jpg)
-
-4. Once your client is created take note of the `Client ID`. Click `Next Step`.
-5. You are going to attach an API credential to this client now with one of the options currently provided. If you have an existing API credential you can attach that as well. In this example, I will click `Generate key pair for me` and let LoginID to create an `ES256` keypair, attach the API credential, and send the private key to me. Store this private key as it will be used to sign service tokens (Bearer authorization tokens) and will be needed to make management API calls.
-
-![Private Key](./images/private-key.jpg)
-
-6. Go to `Settings` on the left hand side and take note of the `Base API URL`.
-
-![Base URL](./images/base-url.jpg)
+1. Head over to https://dashboard.gen2.playground.loginid.io and login into your account.
+2. Click on `Create Tenant`.
+3. Make sure `Non OIDC` tenant is selected.
+4. Enter a name for your tenant on the `Tenant Name` field.
+5. Enter the `RPID (Relying Party ID)` value of your hosted application. The demo will be running on localhost so enter `localhost` here.
+6. Enter the `Allowed Origins` URL of your hosted application. The origin of the demo is `http://localhost:1234` so enter `http://localhost:1234` here.
+7. Click on the Advanced `Configuration` tab and click the `Generate Key Pair` button - store the `private key` that gets generated
+   This will create a ES256 key pair where the public key is stored with LoginID and the private key will be shown here once. Copy the PEM formatted private key as it will be needed later.
+8. Finish creating your tenant and copy the `base URL`.
 
 From here you should have the following needed values:
 
-- Directweb Base URL
-- Backend Client ID
+- Tenant Base URL
 - ES256 Private Key
+
+#### Note on RPIDs
+
+The RPID is a unique identifier that represents a relying party in the WebAuthn (Web Authentication) system. The RPID will be the host part of where your application is hosted. For example if your development application is hosted on:
+
+http://**localhost**:3000
+
+The RPID will be **localhost**. The bolded text are also valid RPIDs for the following examples:
+
+- https://**example**.com
+- https://**subdomain.example**.com
+
+WebAuthn relies on this identifier to associate authentication requests and responses with the correct relying party, ensuring secure and accurate authentication.
+
+#### Note on Allowed Origins
+
+Allowed origins are specific web domains or URLs permitted to make cross-origin requests to a web server. In the context of WebAuthn, these origins are crucial for security.
+
+If left blank, the value will default to the base URL of the RPID value. You only need to enter the origin of your application if you are dealing with `port numbers` or `subdomains`. For instance, if your application is hosted at `http://localhost:3000`, enter that URL here, as the port number is a required component.
+
+This ensures that only requests from `http://localhost:3000` are accepted for WebAuthn operations, adding an extra layer of security to the authentication process.
 
 ## Cognito Set-Up
 
-The `./aws/Template.yaml` file contains descriptions of the necessary AWS services. You can use it as a reference to manually set up the services. Alternatively, you can utilize the `Template.yaml` file with [CloudFormation](https://aws.amazon.com/cloudformation/resources/templates/), which will create the majority of the required service configurations automatically. If you opt to use `CloudFormation`, it may be advisable to exclude the `Layers` property until you are able to upload your own layer for the LoginID SDK dependencies.
+Running the [CloudFormation](https://aws.amazon.com/cloudformation/) found in `./aws/TemplateAPI.yaml` will set up the services and the backend needed to run this demo. When the template is finished running, the output will produce three values:
 
-We will further elaborate on certain crucial aspects of the setup process below.
+1. PasskeyAPIEndpoint - The backend base URL for the demo
+2. UserPoolId - Cognito userpool ID
+3. UserPoolClientId - public Cognito client ID
 
-### Cognito User Pool
+Enter the required parameters when running the template:
 
-- Make sure that email validation is enabled.
-- Configured lambda triggers will need to be created and enabled later on for `DefineAuthChallenge`, `CreateAuthChallenge`, and `VerifyAuthChallengeResponse`.
+1. `LOGINIDBaseURL` - The Tenant base URL from LoginID
+2. `LOGINIDPrivateKey` - The ES256 private key from LoginID
 
-### Cognito User Pool Client
-
-A client will need to be created.
-
-- Make sure that the following Properties are readable and writeable: `email` and `name`.
-
-### Authentication Lambdas
-
-It's worth noting that much of this demo is based on the approach outlined in this [AWS blog post](https://aws.amazon.com/blogs/security/how-to-implement-password-less-authentication-with-amazon-cognito-and-webauthn/). Although this demo is similar to the post, it leverages LoginID's API to handle the FIDO2 credential storage and verification process. You can refer to the blog post and this [documentation](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#amazon-cognito-user-pools-custom-authentication-flow) to gain a better understanding of how the custom authentication Lambdas operate.
-
-For the Lambdas in this demo, I opted to use Python. Please be aware that the `CreateAuthChallenge` and `VerifyAuthChallenge` Lambdas require a `Layer` that includes the LoginID SDK as a dependency. If you choose to use the provided Lambda code in `./aws/`, ensure that the `Layer` is generated in a Linux environment. This is critical because one of the LoginID SDK dependencies relies on the underlying platform. If there is a mismatch, the Lambdas will not function correctly and will throw an error.
-
-It is also important to note that the CreateAuthChallenge and VerifyAuthChallenge also require environment variables. These are:
-
-- LOGINID_BASE_URL
-- LOGINID_CLIENT_ID
-- PRIVATE_KEY
-
-Obtaining these variables are explained [above](#loginid-set-up).
-
-### IAM Privileges
-
-This demo uses a combination of `amazon-cognito-identity-js` and a backend client (`boto-3`) to leverage the cognito APIs.
-
-## Environment Variables
-
-This demo supports .env files. The following variables are required:
+When entering the private key, replace the newlines with the `\n` characters. For example:
 
 ```
-LOGINID_BASE_URL=                       # Base URL obtained from LoginID dashboard
-LOGINID_CLIENT_ID=                      # Backend client ID obtained from LoginID dashboard
-PRIVATE_KEY=                            # ES256 private key obtained from LoginID dashboard
-COGNITO_USER_POOL_ID=                   # Cognito user pool ID
-COGNITO_CLIENT_ID=                      # Cognito OAuth2 client
-COGNITO_REGION_NAME=                    # Cognito region name
-COGNITO_BASE_URL=                       # Cognito's base URL of the given region
+-----BEGIN PRIVATE KEY-----\nMIG...GMT/gj\n-----END PRIVATE KEY-----
 ```
 
-## How to Run
+If you are having issues running the template, you may need to run it on `us-west-1` region.
 
-### Backend
+Running the template will create and configure the settings for the following services:
 
-Open up a terminal and enter root of project. This setup will use a virtual environment. You can use whatever suites you.
+1. Secrets Manager
+2. Cognito User Pool
+3. Cognito Public Client
+4. DefineAuthChallenge Lambda
+5. CreateAuthChallenge Lambda
+6. VerifyAuthChallenge Lambda
+
+The `Secrets Manager` service is needed to securely store the ES256 private key that was provided from LoginID.
+
+You can delete the CloudFormation stack once you are done with the demo.
+
+## Demo Set-Up
+
+After completing the execution of the [CloudFormation template](#cognito-set-up), please proceed by adding the following environment variables to an `.env` file with the outputted variables:
 
 ```
-python -m venv venv
-source ./venv/.bin/activate
-pip install requirements.txt
-flask run
+REACT_PASSKEY_API_BASE_URL=<PasskeyAPIEndpoint>
+REACT_COGNITO_USER_POOL_ID=<UserPoolId>
+REACT_COGNITO_CLIENT_ID=<UserPoolClientId>
 ```
 
-### Frontend
+## Running Demo
 
-Open up a terminal and enter root of project.
+Install the npm packages:
 
 ```
 npm install
+```
+
+Run the demo:
+
+```
 npm run dev
+```
+
+If you would like to use Docker instead, enter the following commands:
+
+```
+docker build -t loginid-cognito .
+docker run -p 1234:1234 -v "$(pwd):/usr/src/app" loginid-cognito
 ```
