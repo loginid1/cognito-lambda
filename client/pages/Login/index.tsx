@@ -70,6 +70,7 @@ const Login = function () {
           handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
           email={email}
+          randomPassword={password}
         />
       );
       break;

@@ -172,6 +172,22 @@ export const confirmSignUp = (
   });
 };
 
+export const changePassword = async (
+  user: CognitoUser,
+  oldPassword: string,
+  newPassword: string
+) => {
+  return new Promise((res, rej) => {
+    user.changePassword(oldPassword, newPassword, (err, result) => {
+      if (err) {
+        rej(err);
+      } else {
+        res(result);
+      }
+    });
+  });
+};
+
 export const authenticate = (
   username: string,
   answer: string,
