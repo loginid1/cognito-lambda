@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  PythonSDK:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content:
+        S3Bucket: cognito-loginid
+        S3Key: python-sdk.zip
+      Description: Python layer with LoginID SDK compatible for linux
+      CompatibleRuntimes:
+      - python3.8
+      LayerName: PythonSDK
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaSecretsPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref LoginIDClientSecret
+        - PolicyName: LambdaLogsPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  DefineAuthChallenge:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
+      CodeUri: s3://cognito-loginid/lambdas/DefineAuthChallenge.zip
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+
+  DefineAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt DefineAuthChallenge.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !Ref CognitoUserPoolARN
+
+  CreateAuthChallenge:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
+      CodeUri: s3://cognito-loginid/lambdas/CreateAuthChallenge.zip
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref PythonSDK
+      Environment:
+        Variables:
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
+  CreateAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt CreateAuthChallenge.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !Ref CognitoUserPoolARN
+      
+  VerifyAuthChallenge:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
+      CodeUri: s3://cognito-loginid/lambdas/VerifyAuthChallenge.zip
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      MemorySize: 1024
+      Timeout: 30
+      Tracing: Active
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref PythonSDK
+      Environment:
+        Variables:
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+
+  VerifyAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt VerifyAuthChallenge.Arn
+      Principal: cognito-idp.amazonaws.com
+      Action: lambda:InvokeFunction
+      SourceArn: !Ref CognitoUserPoolARN
+
+  LoginIDClientSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub ${AWS::StackName}-loginid-keys
+      Description: LoginID keys
+      SecretString: !Ref LOGINIDPrivateKey
+
+  LoginIDKeysSecretPolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    Properties:
+      SecretId: !Ref LoginIDClientSecret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Resource: "*"
+            Action: secretsmanager:GetSecretValue
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+
+Outputs:
+  DefineAuthChallengeArn:
+    Value: !GetAtt DefineAuthChallenge.Arn
+  CreateAuthChallengeArn:
+    Value: !GetAtt CreateAuthChallenge.Arn
+  VerifyAuthChallengeArn:
+    Value: !GetAtt VerifyAuthChallenge.Arn
+
+Parameters:
+  LOGINIDBaseURL:
+    Type: String
+    Description: "BaseURL required for LoginID service"
+  LOGINIDPrivateKey:
+    Type: String
+    NoEcho: true
+    Description: "Private key needed for generating authorization token required for LoginID service"
+  CognitoUserPoolID:
+    Type: String
+    Description: "The Cognito User Pool ID to apply custom authentication with LoginID passkeys"
+  CognitoUserPoolARN:
+    Type: String
+    Description: "The Cognito User Pool ARN to apply custom authentication with LoginID passkeys"

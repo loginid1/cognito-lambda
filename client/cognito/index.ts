@@ -9,7 +9,6 @@ import {
   ICognitoUserData,
 } from "amazon-cognito-identity-js";
 import * as webauthn from "../webauthn/";
-import LoginIDCognitoWebSDK from "../LoginIDCognitoSDK/";
 
 import { config } from "../utils/env";
 
@@ -20,7 +19,7 @@ const userPool = new CognitoUserPool({
   ClientId: COGNITO_CLIENT_ID,
 });
 
-export const Loginid = new LoginIDCognitoWebSDK(
+export const Loginid = new global.LoginIDCognitoWebSDK(
   COGNITO_USER_POOL_ID,
   COGNITO_CLIENT_ID
 );

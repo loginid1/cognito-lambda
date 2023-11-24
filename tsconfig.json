@@ -14,5 +14,9 @@
 	"resolveJsonModule": true,
 	"jsx": "react-jsx",
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "include": [
+	"src/**/*.ts",
+    "custom.d.ts"
+  ]
 }
