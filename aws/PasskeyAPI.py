@@ -5,11 +5,13 @@ import random
 import string
 import secrets
 import requests
+import jwt
 
 from botocore.exceptions import ClientError
 from os import environ
 from loginid import LoginID
 from loginid.utils import LoginIDError
+from urllib.parse import urlparse
 
 
 BASE_URL = environ.get("LOGINID_BASE_URL") or ""
@@ -245,14 +247,43 @@ def lambda_handler(event: dict, _: dict) -> dict:
             return response
 
         elif path == CREDENTIALS_RENAME_PATH:
-            loginid_user_id = claims.get("custom:loginid_user_id")
+            username = claims["cognito:username"]
             credential_uuid, name = parse_json(body, "credential_uuid", "name")
+            private_key = get_private_key()
 
-            lid_response = lid.rename_user_credential(
-                cred_uuid=credential_uuid,
-                new_name=name,
-                user_uuid=loginid_user_id
-            )
+            loginid_user = lid.post("/backend-api/users/username", { "username": username })
+            user_uuid = loginid_user["user_uuid"]
+
+            # modulize this if needed again
+            aud = urlparse(BASE_URL).hostname
+            if not aud:
+                response = {
+                    "statusCode": 400,
+                    "headers": headers,
+                    "body": json.dumps({"error": "Invalid LOGINID_BASE_URL"})
+                }
+                return response
+
+            jwt_payload = {
+                "iss": "loginid.io",
+                "aud": aud,
+                
+            }
+            jwt_token = jwt.encode(jwt_payload, private_key, algorithm="ES256")
+
+            loginid_headers = {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + jwt_token
+            }
+            url = BASE_URL + f"/backend-api/users/{user_uuid}/credentials/fido2/{credential_uuid}/name"
+            response = requests.put(url, json=name, headers=loginid_headers)
+            if response.status_code != 204:
+                response = {
+                    "statusCode": response.status_code,
+                    "headers": headers,
+                    "body": json.dumps(response.json())
+                }
+                return response
 
             response = {
                 "statusCode": 200,

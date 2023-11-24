@@ -8,11 +8,16 @@ import { validateEmail } from "./validations";
 import { useConfig } from "../../contexts/ConfigContext";
 import * as cognito from "../../cognito/";
 
+interface Props extends CommonFormProps {
+  randomPassword: string;
+}
+
 const PasswordRegister = ({
   handlerEmail,
   handlerWhichLogin,
   email,
-}: CommonFormProps) => {
+  randomPassword,
+}: Props) => {
   const { config } = useConfig();
   const { classes } = useStyle(config);
   const [password, setPassword] = useState("");
@@ -24,10 +29,17 @@ const PasswordRegister = ({
     try {
       validateEmail(email);
 
-      const user = await cognito.signUp(email, email, password);
-      if (user) {
-        handlerWhichLogin(Login.EmailVerification);
+      const user = await cognito.authenticate(
+        email,
+        randomPassword,
+        "PASSWORD"
+      );
+      if (!user) {
+        throw new Error("Authentication failed");
       }
+
+      await cognito.changePassword(user, randomPassword, password);
+      handlerWhichLogin(Login.CompleteRegistration);
     } catch (e: any) {
       setError(e.message);
     }
