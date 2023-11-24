@@ -92,10 +92,14 @@ Running the template will create and configure the settings for the following se
 4. DefineAuthChallenge Lambda
 5. CreateAuthChallenge Lambda
 6. VerifyAuthChallenge Lambda
+7. API Gateway Proxy
+8. Rest API Lambda
 
 The `Secrets Manager` service is needed to securely store the ES256 private key that was provided from LoginID.
 
 You can delete the CloudFormation stack once you are done with the demo.
+
+When you run the template located at `./aws/Template.yaml`, it will configure all the necessary services (not including API Gateway and Rest API Lambda) to create a Cognito User Pool with customized authentication for passkeys. It's recommended to use this template outside of the demo if you wish to set up a new user pool.
 
 ## Demo Set-Up
 
