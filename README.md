@@ -82,8 +82,6 @@ When entering the private key, replace the newlines with the `\n` characters. Fo
 -----BEGIN PRIVATE KEY-----\nMIG...GMT/gj\n-----END PRIVATE KEY-----
 ```
 
-If you are having issues running the template, you may need to run it on `us-west-1` region.
-
 Running the template will create and configure the settings for the following services:
 
 1. Secrets Manager

@@ -94,6 +94,9 @@ def verify_cognito_id_token(event: dict, token: str):
     # verify id_token
     jwks_client = PyJWKClient(jwks_endpoint)
     signing_key = jwks_client.get_signing_key_from_jwt(token)
+
+    # jwt.decode will verify the signature, expiration, audience, issuer, and the claims
+    # if any of the above are invalid, it will throw an exception
     data = jwt.decode(
         token,
         signing_key.key,
