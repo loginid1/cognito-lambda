@@ -20,7 +20,7 @@ An integration of Loginid and AWS Cognito authentication with custom authenticat
 
 ## LoginID Set-Up
 
-You need to the following items with LoginID in order to run this integration:
+You need the following items with LoginID in order to run this integration:
 
 - Web Tenant (Non-OIDC) base URL
 - Tenant level ES256 private key needed to call backend services
