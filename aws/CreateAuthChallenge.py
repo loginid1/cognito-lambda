@@ -1,10 +1,7 @@
 import boto3
 import json
-import re
-import requests
 
 from loginid import LoginID
-from loginid.utils import LoginIDError
 from os import environ
 
 LOGINID_BASE_URL = environ.get("LOGINID_BASE_URL") or ""
@@ -15,7 +12,7 @@ secretsmanager = boto3.client("secretsmanager")
 
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
-    lid = LoginID(LOGINID_BASE_URL, get_private_key())
+    lid = LoginID(LOGINID_BASE_URL, get_key_id())
 
     request = event["request"]
     response = event["response"]
@@ -46,22 +43,17 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     # sign in with FIDO2
     if client_metadata["authentication_type"] == "FIDO2_GET":
-        init_res = lid.authenticate_fido2_init(username)
+        options = client_metadata.get("options", "{}")
+        options = json.loads(options)
+        init_res = lid.authenticate_with_passkey_init(username, options)
         public_key = json.dumps(init_res)
 
     # add FIDO2 credential to existing user
     elif client_metadata["authentication_type"] == "FIDO2_CREATE":
-        try:
-            init_res = lid.add_fido2_credential_init(username)
-            public_key = json.dumps(init_res)
-        except LoginIDError as e:
-            if e.status == 404 and e.code == "unknown_user":
-                lid.create_user_without_credential(username)
-                init_res = lid.add_fido2_credential_init(username)
-                public_key = json.dumps(init_res)
-            else:
-                print(e)
-                raise e
+        options = client_metadata.get("options", "{}")
+        options = json.loads(options)
+        init_res = lid.register_with_passkey_init(username, options)
+        public_key = json.dumps(init_res)
 
     else:
         raise Exception("Authentication type not supported")
@@ -77,12 +69,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
     return event
 
 
-def get_private_key() -> str:
+def get_key_id() -> str:
     secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
-    private_key = secret["SecretString"]
-    private_key = re.sub(
-        r"\\n",
-        r"\n",
-        private_key,
-    )
-    return private_key
+    key_id = secret["SecretString"]
+    return key_id
