@@ -2,7 +2,7 @@ import setuptools
 
 INSTALL_REQUIRES = [
         "requests",
-        "cryptography<40.0.2,>=3.3.2",
+        "cryptography",
         "pyjwt",
         "urllib3<2"
     ]

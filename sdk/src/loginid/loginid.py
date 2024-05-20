@@ -12,6 +12,26 @@ class LoginID(LoginIdClient):
         token = response.get("token")
         return token
 
+    def _clean_options(self, options: dict) -> dict:
+        # in case username is sent as options
+        if options and options.get("user", {}).get("username"):
+            options["user"].pop("username")
+
+        # in case app id is sent as options
+        if options and options.get("app", {}).get("id"):
+            options["app"].pop("id")
+
+        return options
+
+    def _deep_update(self, original: dict, update: dict) -> dict:
+        for key, value in update.items():
+            if isinstance(value, dict):
+                original[key] = self._deep_update(original.get(key, {}), value)
+            else:
+                original[key] = value
+
+        return original
+
     def authenticate_with_passkey_init(self, username: str, options: Optional[dict] = None) -> Optional[dict]:
         payload = {
             "app": {"id": self.app_id},
@@ -20,7 +40,7 @@ class LoginID(LoginIdClient):
         }
 
         if options:
-            payload.update(options)
+            self._deep_update(payload, self._clean_options(options))
 
         return self.post("/fido2/v2/auth/init", payload)
 
@@ -38,7 +58,7 @@ class LoginID(LoginIdClient):
         }
 
         if options:
-            payload.update(options)
+            self._deep_update(payload, self._clean_options(options))
 
         # remove for now till things get sorted out in the backend
         # grant = self.generate_grant(username, "passkey:create")
@@ -53,7 +73,7 @@ class LoginID(LoginIdClient):
         )
 
     def get_passkeys(self, username: str) -> Optional[list]:
-        token = self._fetch_grant_token(username, "passkey:read")
+        token = self._fetch_grant_token(username, "passkey:list")
         return self.get("/fido2/v2/passkeys", bearer=token) or []
 
     def delete_passkey(self, username: str, passkey_uuid: str) -> Optional[dict]:
