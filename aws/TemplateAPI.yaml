@@ -265,7 +265,7 @@ Resources:
     Properties:
       Name: !Sub ${AWS::StackName}-loginid-keys
       Description: LoginID keys
-      SecretString: !Ref LOGINIDPrivateKey
+      SecretString: !Ref LOGINIDAPIKeyID
 
   LoginIDKeysSecretPolicy:
     Type: AWS::SecretsManager::ResourcePolicy
@@ -293,8 +293,40 @@ Resources:
           description: "Gateway for LoginID credential API"
           version: "2023-08-21T05:58:04Z"
         paths:
-          /fido2/create/complete:
-            post:
+          /passkeys/{id}:
+            put:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              security:
+              - LoginID-Cognito-Pool: []
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+            delete:
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
               responses:
                 "200":
                   description: "200 response"
@@ -344,115 +376,7 @@ Resources:
                 requestTemplates:
                   application/json: "{\"statusCode\": 200}"
                 passthroughBehavior: "when_no_match"
-          /fido2/create/init:
-            post:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              security:
-              - LoginID-Cognito-Pool: []
-              x-amazon-apigateway-integration:
-                type: "aws_proxy"
-                httpMethod: "POST"
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-            options:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Headers:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "mock"
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
-                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                requestTemplates:
-                  application/json: "{\"statusCode\": 200}"
-                passthroughBehavior: "when_no_match"
-          /credentials/revoke:
-            post:
-              responses:
-                "200":
-                  description: "200 response"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              security:
-              - LoginID-Cognito-Pool: []
-              x-amazon-apigateway-integration:
-                type: "aws_proxy"
-                httpMethod: "POST"
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-            options:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Headers:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "mock"
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                requestTemplates:
-                  application/json: "{\"statusCode\": 200}"
-                passthroughBehavior: "when_no_match"
-          /credentials/list:
+          /passkeys:
             get:
               responses:
                 "200":
@@ -504,173 +428,6 @@ Resources:
                     statusCode: "200"
                     responseParameters:
                       method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                requestTemplates:
-                  application/json: "{\"statusCode\": 200}"
-                passthroughBehavior: "when_no_match"
-          /fido2/register/complete:
-            post:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "aws_proxy"
-                httpMethod: "POST"
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-            options:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Headers:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "mock"
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
-                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                requestTemplates:
-                  application/json: "{\"statusCode\": 200}"
-                passthroughBehavior: "when_no_match"
-          /fido2/register/init:
-            post:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "aws_proxy"
-                httpMethod: "POST"
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-            options:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Headers:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "mock"
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
-                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                requestTemplates:
-                  application/json: "{\"statusCode\": 200}"
-                passthroughBehavior: "when_no_match"
-          /credentials/rename:
-            post:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              security:
-              - LoginID-Cognito-Pool: []
-              x-amazon-apigateway-integration:
-                type: "aws_proxy"
-                httpMethod: "POST"
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
-                passthroughBehavior: "when_no_match"
-                contentHandling: "CONVERT_TO_TEXT"
-            options:
-              responses:
-                "200":
-                  description: "200 response"
-                  headers:
-                    Access-Control-Allow-Origin:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Methods:
-                      schema:
-                        type: "string"
-                    Access-Control-Allow-Headers:
-                      schema:
-                        type: "string"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/Empty"
-              x-amazon-apigateway-integration:
-                type: "mock"
-                responses:
-                  default:
-                    statusCode: "200"
-                    responseParameters:
-                      method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
                       method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
                       method.response.header.Access-Control-Allow-Origin: "'*'"
                 requestTemplates:
@@ -803,7 +560,7 @@ Parameters:
   LOGINIDBaseURL:
     Type: String
     Description: "BaseURL required for LoginID service"
-  LOGINIDPrivateKey:
+  LOGINIDAPIKeyID:
     Type: String
     NoEcho: true
-    Description: "Private key needed for generating authorization token required for LoginID service"
+    Description: "API key ID required for LoginID service"
