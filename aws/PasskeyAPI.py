@@ -83,7 +83,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
             lid_response = lid.rename_passkey(username, name, passkey_id)
 
             response = {
-                "statusCode": 200,
+                "statusCode": 204,
                 "headers": headers,
                 "body": lid_response
             }
@@ -96,7 +96,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
             lid_response = lid.delete_passkey(username, passkey_id)
 
             response = {
-                "statusCode": 200,
+                "statusCode": 204,
                 "headers": headers,
                 "body": lid_response
             }
