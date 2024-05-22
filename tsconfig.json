@@ -9,6 +9,7 @@
     ],
     "strict": true,
     "esModuleInterop": true,
+	"allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
 	"moduleResolution": "Node",
 	"resolveJsonModule": true,
@@ -16,7 +17,7 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-	"src/**/*.ts",
+	"./client/**/*.ts",
     "custom.d.ts"
   ]
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 import { Accordion, ActionIcon, Button, Title } from "@mantine/core";
 import useStyles from "./styles";
@@ -14,7 +15,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { getUserIDToken } from "../../cognito";
 import * as cognito from "../../cognito/";
 import { Loginid } from "../../cognito";
-import { credentialList, revokeCredential } from "../../services/credentials";
+import { deletePasskey, passkeyList } from "../../services/credentials";
 
 const Passkeys = function () {
   const { config } = useConfig();
@@ -45,9 +46,7 @@ const Passkeys = function () {
 
   const handleRename = async (id: string, name: string) => {
     const newData = passkeys.map((passkey) => {
-      return passkey.cred_uuid === id
-        ? { ...passkey, cred_name: name }
-        : passkey;
+      return passkey.id === id ? { ...passkey, name: name } : passkey;
     });
     setPasskeys(newData);
   };
@@ -57,11 +56,9 @@ const Passkeys = function () {
       if (!passkeyID) throw new Error("No passkey ID");
       const token = await getUserIDToken(user);
       //no await
-      revokeCredential(passkeyID, token);
+      deletePasskey(passkeyID, token);
 
-      const newData = passkeys.filter(
-        (passkey) => passkey.cred_uuid !== passkeyID
-      );
+      const newData = passkeys.filter((passkey) => passkey.id !== passkeyID);
       setPasskeys(newData);
       setError("");
     } catch (e: any) {
@@ -78,8 +75,8 @@ const Passkeys = function () {
 
       await Loginid.addPasskey(username, token);
 
-      const { credentials } = await credentialList(token);
-      setPasskeys([...credentials]);
+      const passkeys = await passkeyList(token);
+      setPasskeys([...passkeys]);
     } catch (e: any) {
       setError(commonError(e));
     }
@@ -100,13 +97,13 @@ const Passkeys = function () {
       >
         {passkeys.map((passkey, index) => (
           <Passkey
-            key={passkey.cred_name || index}
-            id={passkey.cred_uuid}
-            name={passkey.cred_name || "Passkey"}
+            key={passkey.name + index}
+            id={passkey.id}
+            name={passkey.name}
             handleFocus={handleFocus}
             handleRename={handleRename}
             handleOpenModal={handleOpenDeleteModal}
-            shouldFocus={tempPasskeyID === passkey.cred_uuid}
+            shouldFocus={tempPasskeyID === passkey.id}
           />
         ))}
       </Accordion>
@@ -128,8 +125,7 @@ const Passkeys = function () {
       {/* Modal Delete Passkey */}
       <DeletePasskeyModal
         passkeyName={
-          passkeys.find((passkey) => passkey.cred_uuid === passkeyID)
-            ?.cred_name || ""
+          passkeys.find((passkey) => passkey.id === passkeyID)?.name || ""
         }
         onClose={() => setOpenedDeletePasskey(false)}
         opened={openedDeletePasskey}
