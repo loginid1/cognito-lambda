@@ -47,8 +47,9 @@ class LoginIdClient:
         encoded_credentials = base64.urlsafe_b64encode(credentials.encode()).decode()
         return f"Basic {encoded_credentials}"
 
-    def post(self, endpoint: str, data: Optional[dict]=None, api_key_auth=False, bearer="") -> Optional[dict]:
-        headers = self._prepare_headers(api_key_auth=api_key_auth, bearer=bearer)
+    def post(self, endpoint: str, data: Optional[dict]=None, headers={}, api_key_auth=False, bearer="") -> Optional[dict]:
+        _headers = self._prepare_headers(api_key_auth=api_key_auth, bearer=bearer)
+        headers = {**_headers, **headers}
         response = self.session.post(f"{self.base_url}{endpoint}", json=data, headers=headers)
 
         if response.status_code == 200 or response.status_code == 502:

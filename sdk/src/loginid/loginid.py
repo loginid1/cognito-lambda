@@ -38,11 +38,14 @@ class LoginID(LoginIdClient):
             "deviceInfo": {},
             "user": {"username": username, "usernameType": "email"}
         }
+        headers = {}
 
         if options:
             self._deep_update(payload, self._clean_options(options))
+            if options.get("userAgent"):
+                headers["User-Agent"] = options["userAgent"]
 
-        return self.post("/fido2/v2/auth/init", payload)
+        return self.post("/fido2/v2/auth/init", payload, headers=headers)
 
     def authenticate_with_passkey_complete(self, response: dict) -> Optional[dict]:
         return self.post(
@@ -56,15 +59,17 @@ class LoginID(LoginIdClient):
             "deviceInfo": {},
             "user": {"username": username, "usernameType": "email"}
         }
+        headers = {}
 
         if options:
             self._deep_update(payload, self._clean_options(options))
+            if options.get("userAgent"):
+                headers["User-Agent"] = options["userAgent"]
 
         # remove for now till things get sorted out in the backend
-        # grant = self.generate_grant(username, "passkey:create")
-        # print("grant created: ", grant)
-
-        return self.post("/fido2/v2/reg/init", payload)
+        #token = self._fetch_grant_token(username, "passkey:create")
+        #return self.post("/fido2/v2/reg/init", payload, bearer=token)
+        return self.post("/fido2/v2/reg/init", payload, headers=headers)
 
     def register_with_passkey_complete(self, response: dict) -> Optional[dict]:
         return self.post(
@@ -81,8 +86,9 @@ class LoginID(LoginIdClient):
         return self.delete(f"/fido2/v2/passkeys/{passkey_uuid}", bearer=token)
 
     def rename_passkey(self, username: str, new_name: str, passkey_uuid: str) -> Optional[dict]:
+        payload = {"name": new_name}
         token = self._fetch_grant_token(username, "passkey:update")
-        return self.put(f"/fido2/v2/passkeys/{passkey_uuid}", new_name, bearer=token)
+        return self.put(f"/fido2/v2/passkeys/{passkey_uuid}", payload, bearer=token)
 
     def generate_grant(self, username: str, grant: str) -> Optional[dict]:
         payload = {"username": username, "grant": grant}
