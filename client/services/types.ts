@@ -1,17 +1,8 @@
-export interface Credential {
-  cred_uuid: string;
-  cred_type?: string;
-  cred_name?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface CredentialsData {
-  credentials: Credential[];
-}
-
-export interface CredentialData {
-  credential: Credential;
+export interface PasskeyInfo {
+  name: string;
+  device: object;
+  createdAt: string;
+  id: string;
 }
 
 export interface CredentialPhoneInitResponse {

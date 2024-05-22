@@ -9,8 +9,8 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { getUserIDToken } from "../cognito";
 import { PasskeysStorage } from "../storage/passkeys";
-import { credentialList } from "../services/credentials";
-import { Credential } from "../services/types";
+import { passkeyList } from "../services/credentials";
+import { PasskeyInfo } from "../services/types";
 import * as cognito from "../cognito/";
 
 //can be generic
@@ -27,8 +27,8 @@ export const useRefFocus = (value: boolean): RefObject<HTMLInputElement> => {
 };
 
 interface Resources {
-  passkeys: Credential[];
-  setPasskeys: Dispatch<SetStateAction<Credential[]>>;
+  passkeys: PasskeyInfo[];
+  setPasskeys: Dispatch<SetStateAction<PasskeyInfo[]>>;
   loading: boolean;
   error: string;
 }
@@ -36,7 +36,7 @@ interface Resources {
 //might want to have a better error handling method for each resource
 //if needed
 export const useFetchResources = (): Resources => {
-  const [passkeys, setPasskeys] = useState<Credential[]>(
+  const [passkeys, setPasskeys] = useState<PasskeyInfo[]>(
     PasskeysStorage.get("[]")
   );
   const [loading, setLoading] = useState(true);
@@ -48,16 +48,14 @@ export const useFetchResources = (): Resources => {
       try {
         const token = await getUserIDToken(user);
 
-        const resources = [credentialList(token)];
+        const resources = [passkeyList(token)];
         const fetched = await Promise.all(resources);
-        const [fetchedCredentialsData] = fetched;
-
-        const { credentials } = fetchedCredentialsData;
+        const [passkeys] = fetched;
 
         //set to local storage cache
-        PasskeysStorage.set(credentials);
+        PasskeysStorage.set(passkeys);
 
-        setPasskeys(credentials);
+        setPasskeys(passkeys);
         setLoading(false);
       } catch (e: any) {
         console.error(e);

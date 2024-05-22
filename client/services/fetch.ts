@@ -44,3 +44,51 @@ export const post = async <T>(
 
   return await response.json();
 };
+
+export const put = async <T>(
+  url: string,
+  body: any = {},
+  headers: any = {}
+): Promise<T | null> => {
+  let _headers: any = { "Content-Type": "application/json" };
+
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: { ..._headers, ...headers },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw data;
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return await response.json();
+};
+
+export const del = async <T>(
+  url: string,
+  headers: any = {}
+): Promise<T | null> => {
+  let _headers: any = { "Content-Type": "application/json" };
+
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: { ..._headers, ...headers },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw data;
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return await response.json();
+};

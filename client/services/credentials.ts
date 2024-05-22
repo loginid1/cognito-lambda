@@ -1,10 +1,5 @@
-import { get, post } from "./fetch";
-import {
-  Config,
-  CredentialData,
-  CredentialsData,
-  CredentialPhoneInitResponse,
-} from "./types";
+import { del, get, post, put } from "./fetch";
+import { Config, CredentialPhoneInitResponse, PasskeyInfo } from "./types";
 
 import { config } from "../utils/env";
 
@@ -31,28 +26,26 @@ export const fido2CreateInit = async (token: string) => {
 };
 
 export const fido2CreateComplete = async (body: any, token: string) => {
-  return await post<CredentialData>(BASE_URL + "/fido2/create/complete", body, {
+  return await post<null>(BASE_URL + "/fido2/create/complete", body, {
     Authorization: "Bearer " + token,
   });
 };
 
-export const credentialList = async (token: string, type = "fido2") => {
-  const response = get<CredentialsData>(
-    BASE_URL + "/credentials/list?status=active&type=" + type,
-    { Authorization: "Bearer " + token }
-  );
+export const passkeyList = async (token: string) => {
+  const response = get<PasskeyInfo[]>(BASE_URL + "/passkeys", {
+    Authorization: "Bearer " + token,
+  });
   return response;
 };
 
-export const renameCredential = async (
-  credentialUUID: string,
+export const renamePasskey = async (
+  passkeyId: string,
   name: string,
   token: string
 ) => {
-  const response = post<null>(
-    BASE_URL + "/credentials/rename",
+  const response = put<null>(
+    BASE_URL + `/passkeys/${passkeyId}`,
     {
-      credential_uuid: credentialUUID,
       name: name,
     },
     { Authorization: "Bearer " + token }
@@ -60,15 +53,10 @@ export const renameCredential = async (
   return response;
 };
 
-export const revokeCredential = async (
-  credentialUUID: string,
-  token: string
-) => {
-  const response = post<null>(
-    BASE_URL + "/credentials/revoke",
-    { credential_uuid: credentialUUID },
-    { Authorization: "Bearer " + token }
-  );
+export const deletePasskey = async (passkeyId: string, token: string) => {
+  const response = del<null>(BASE_URL + `/passkeys/${passkeyId}`, {
+    Authorization: "Bearer " + token,
+  });
   return response;
 };
 
@@ -90,7 +78,7 @@ export const credentialsPhoneComplete = async (
   otp: string,
   token: string
 ) => {
-  return await post<CredentialData>(
+  return await post<null>(
     BASE_URL + "/credentials/phone/complete",
     { credential_uuid: credentialUUID, phone_number: phoneNumber, otp },
     { Authorization: "Bearer " + token }

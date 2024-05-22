@@ -1,9 +1,10 @@
+import React from "react";
 import { ChangeEvent, KeyboardEvent, useState } from "react";
 import { Accordion, Input } from "@mantine/core";
 import { useRefFocus } from "../../hooks/common";
 import { EMPTY_PASSKEY_NAME } from "../../errors/";
 import { SmallIconButton } from "../../components/Button/";
-import { renameCredential } from "../../services/credentials";
+import { renamePasskey } from "../../services/credentials";
 import { commonError } from "../../errors";
 import { getUserIDToken } from "../../cognito";
 import { useAuth } from "../../contexts/AuthContext";
@@ -44,7 +45,7 @@ const Passkey = function ({
       const token = await getUserIDToken(user);
       //might need to handle this change better
       //no await
-      renameCredential(id, name, token);
+      renamePasskey(id, name, token);
 
       handleFocus(null);
     } catch (e: any) {

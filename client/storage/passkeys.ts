@@ -1,5 +1,5 @@
 import { Storage } from "./base";
-import { Credential } from "../services/types";
+import { PasskeyInfo } from "../services/types";
 
 const KEY = "current-user-passkeys";
-export const PasskeysStorage = new Storage<Credential[]>(KEY);
+export const PasskeysStorage = new Storage<PasskeyInfo[]>(KEY);

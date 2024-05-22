@@ -1,11 +1,10 @@
 import boto3
 import json
-import re
-import requests
+import jwt
 
 from loginid import LoginID
-from loginid.utils import LoginIDError
 from os import environ
+from jwt import PyJWKClient
 
 LOGINID_BASE_URL = environ.get("LOGINID_BASE_URL") or ""
 LOGINID_SECRET_NAME = environ.get("LOGINID_SECRET_NAME") or ""
@@ -15,7 +14,7 @@ secretsmanager = boto3.client("secretsmanager")
 
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
-    lid = LoginID(LOGINID_BASE_URL, get_private_key())
+    lid = LoginID(LOGINID_BASE_URL, get_key_id())
 
     request = event["request"]
     response = event["response"]
@@ -46,22 +45,22 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     # sign in with FIDO2
     if client_metadata["authentication_type"] == "FIDO2_GET":
-        init_res = lid.authenticate_fido2_init(username)
+        options = client_metadata.get("options", "{}")
+        options = json.loads(options)
+        init_res = lid.authenticate_with_passkey_init(username, options)
         public_key = json.dumps(init_res)
 
     # add FIDO2 credential to existing user
     elif client_metadata["authentication_type"] == "FIDO2_CREATE":
-        try:
-            init_res = lid.add_fido2_credential_init(username)
-            public_key = json.dumps(init_res)
-        except LoginIDError as e:
-            if e.status == 404 and e.code == "unknown_user":
-                lid.create_user_without_credential(username)
-                init_res = lid.add_fido2_credential_init(username)
-                public_key = json.dumps(init_res)
-            else:
-                print(e)
-                raise e
+        options = client_metadata.get("options", "{}")
+        options = json.loads(options)
+
+        # verify cognito id token
+        id_token = options.get("idToken", "")
+        verify_cognito_id_token(event, id_token)
+
+        init_res = lid.register_with_passkey_init(username, options)
+        public_key = json.dumps(init_res)
 
     else:
         raise Exception("Authentication type not supported")
@@ -77,12 +76,37 @@ def lambda_handler(event: dict, _: dict) -> dict:
     return event
 
 
-def get_private_key() -> str:
+def get_key_id() -> str:
     secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
-    private_key = secret["SecretString"]
-    private_key = re.sub(
-        r"\\n",
-        r"\n",
-        private_key,
+    key_id = secret["SecretString"]
+    return key_id
+
+
+def verify_cognito_id_token(event: dict, token: str):
+    if not token:
+        raise Exception("id_token is missing")
+
+    region = event["region"]
+    userpool_id = event["userPoolId"]
+    client_id = event["callerContext"]["clientId"]
+    username = event["userName"]
+    issuer_endpoint = f"https://cognito-idp.{region}.amazonaws.com/{userpool_id}"
+    jwks_endpoint = f"https://cognito-idp.{region}.amazonaws.com/{userpool_id}/.well-known/jwks.json"
+
+    # verify id_token
+    jwks_client = PyJWKClient(jwks_endpoint)
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
+
+    # jwt.decode will verify the signature, expiration, audience, issuer, and the claims
+    # if any of the above are invalid, it will throw an exception
+    data = jwt.decode(
+        token,
+        signing_key.key,
+        algorithms=["RS256"],
+        audience=client_id,
+        issuer=issuer_endpoint,
     )
-    return private_key
+
+    # check username claim
+    if data["cognito:username"] != username:
+        raise Exception("username claim mismatch")
