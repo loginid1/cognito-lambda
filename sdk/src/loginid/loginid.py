@@ -66,10 +66,8 @@ class LoginID(LoginIdClient):
             if options.get("userAgent"):
                 headers["User-Agent"] = options["userAgent"]
 
-        # remove for now till things get sorted out in the backend
-        #token = self._fetch_grant_token(username, "passkey:create")
-        #return self.post("/fido2/v2/reg/init", payload, bearer=token)
-        return self.post("/fido2/v2/reg/init", payload, headers=headers)
+        token = self._fetch_grant_token(username, "passkey:create")
+        return self.post("/fido2/v2/reg/init", payload, headers=headers, bearer=token)
 
     def register_with_passkey_complete(self, response: dict) -> Optional[dict]:
         return self.post(
