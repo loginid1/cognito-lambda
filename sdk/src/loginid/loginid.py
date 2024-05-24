@@ -94,4 +94,4 @@ class LoginID(LoginIdClient):
 
     def verify_jwt_access_token(self, jwt: str) -> Optional[dict]:
         payload = {"jwtAccess": jwt}
-        return self.post("/fido2/v2/mgmt/verify", payload)
+        return self.post("/fido2/v2/mgmt/token/verify", payload, api_key_auth=True)

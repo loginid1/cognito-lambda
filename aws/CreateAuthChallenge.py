@@ -50,7 +50,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
         init_res = lid.authenticate_with_passkey_init(username, options)
         public_key = json.dumps(init_res)
 
-    # add FIDO2 credential to existing user
+    # register/add FIDO2 credential to existing user
     elif client_metadata["authentication_type"] == "FIDO2_CREATE":
         options = client_metadata.get("options", "{}")
         options = json.loads(options)
@@ -61,6 +61,17 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         init_res = lid.register_with_passkey_init(username, options)
         public_key = json.dumps(init_res)
+
+    # sign in with verified LoginID access JWT
+    elif client_metadata["authentication_type"] == "JWT_ACCESS":
+        # cognito requires a challenge to be issued
+        response["privateChallengeParameters"] = {
+            "challenge": "ACCESS_JWT"
+        }
+        response["publicChallengeParameters"] = {
+            "challenge": "ACCESS_JWT"
+        }
+        return event
 
     else:
         raise Exception("Authentication type not supported")

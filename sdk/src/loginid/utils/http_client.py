@@ -55,6 +55,9 @@ class LoginIdClient:
         if response.status_code == 200 or response.status_code == 502:
             return self._parse_response(response)
 
+        if response.status_code == 204:
+            return None
+
         raise LoginIDError.from_dict(response.status_code, response.json())
 
     def get(self, endpoint: str, data: Optional[dict]=None, api_key_auth=False, bearer="") -> Optional[dict]:

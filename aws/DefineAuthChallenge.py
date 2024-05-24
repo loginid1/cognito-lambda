@@ -38,7 +38,7 @@ def lambda_handler(event: dict, _: dict) -> dict:
             response["failAuthentication"] = False
             response["challengeName"] = "CUSTOM_CHALLENGE"
 
-        valid_types = ["FIDO2_CREATE", "FIDO2_GET", "FIDO2_ADD"]
+        valid_types = ["FIDO2_CREATE", "FIDO2_GET", "JWT_ACCESS"]
 
         if valid_types.count(authentication_type):
             challenge_name = session_obj["challengeName"]
