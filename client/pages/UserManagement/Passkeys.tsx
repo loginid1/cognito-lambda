@@ -13,9 +13,8 @@ import { commonError } from "../../errors";
 import { useConfig } from "../../contexts/ConfigContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserIDToken } from "../../cognito";
-import * as cognito from "../../cognito/";
 import { Loginid } from "../../cognito";
-import { deletePasskey, passkeyList } from "../../services/credentials";
+import * as cognito from "../../cognito/";
 
 const Passkeys = function () {
   const { config } = useConfig();
@@ -56,7 +55,7 @@ const Passkeys = function () {
       if (!passkeyID) throw new Error("No passkey ID");
       const token = await getUserIDToken(user);
       //no await
-      deletePasskey(passkeyID, token);
+      Loginid.deletePasskey(token, passkeyID);
 
       const newData = passkeys.filter((passkey) => passkey.id !== passkeyID);
       setPasskeys(newData);
@@ -75,7 +74,7 @@ const Passkeys = function () {
 
       await Loginid.addPasskey(username, token);
 
-      const passkeys = await passkeyList(token);
+      const passkeys = await Loginid.listPasskeys(token);
       setPasskeys([...passkeys]);
     } catch (e: any) {
       setError(commonError(e));

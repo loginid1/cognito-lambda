@@ -27,7 +27,10 @@ authenticator_uuid = create_authenticator_response.get("authenticator_id")
 # Register with passkey
 reg_init = lid.register_with_passkey_init(username)
 create_response = authenticator.create_credential(authenticator_uuid, reg_init)
-lid.register_with_passkey_complete(create_response)
+res = lid.register_with_passkey_complete(create_response)
+jwt_access = res["jwtAccess"]
+
+lid.verify_jwt_access_token(jwt_access)
 
 # Authenticate with passkey
 auth_init = lid.authenticate_with_passkey_init(username)

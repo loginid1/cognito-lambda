@@ -13,7 +13,8 @@ import { LoginIDCognitoWebSDK } from "@loginid/cognito-web-sdk";
 
 import { config } from "../utils/env";
 
-const { COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID } = config;
+const { COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID, PASSKEY_API_BASE_URL } =
+  config;
 
 const userPool = new CognitoUserPool({
   UserPoolId: COGNITO_USER_POOL_ID,
@@ -22,7 +23,8 @@ const userPool = new CognitoUserPool({
 
 export const Loginid = new LoginIDCognitoWebSDK(
   COGNITO_USER_POOL_ID,
-  COGNITO_CLIENT_ID
+  COGNITO_CLIENT_ID,
+  PASSKEY_API_BASE_URL
 );
 
 export const getCurrentUser = (): CognitoUser | null => {

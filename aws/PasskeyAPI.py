@@ -16,13 +16,14 @@ COGNITO_USER_POOL_ID = environ.get("COGNITO_USER_POOL_ID") or ""
 
 # paths
 PASSKEYS_PATH = "/passkeys"
+PASSKEY_AUTH_INIT = "/passkeys/auth/init"
+PASSKEY_AUTH_COMPLETE = "/passkeys/auth/complete"
 
 aws_cognito = boto3.client(
     "cognito-idp",
     region_name=COGNITO_REGION_NAME,
 )
 secretsmanager = boto3.client("secretsmanager")
-
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
@@ -42,7 +43,10 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         # handle claims and paths
         claims = {}
-        paths = []
+        paths = [
+            PASSKEY_AUTH_INIT,
+            PASSKEY_AUTH_COMPLETE,
+        ]
 
         method = event.get("httpMethod")
 
@@ -63,7 +67,33 @@ def lambda_handler(event: dict, _: dict) -> dict:
                 }
                 return response
 
-        if path == PASSKEYS_PATH and method == "GET":
+        # used for usernameless passkey login
+        if path == PASSKEY_AUTH_INIT and method == "POST":
+            request_headers = event.get("headers") or {}
+            user_agent = request_headers.get("User-Agent")
+
+            options = {"userAgent": user_agent} if user_agent else None
+            lid_response = lid.authenticate_with_passkey_init("", options)
+
+            response = {
+                "statusCode": 200,
+                "headers": headers,
+                "body": json.dumps(lid_response)
+            }
+            return response
+
+        elif path == PASSKEY_AUTH_COMPLETE and method == "POST":
+            response = json.loads(body)
+            lid_response = lid.authenticate_with_passkey_complete(response) or {}
+
+            response = {
+                "statusCode": 200,
+                "headers": headers,
+                "body": json.dumps(lid_response)
+            }
+            return response
+
+        elif path == PASSKEYS_PATH and method == "GET":
             username = claims["cognito:username"]
 
             lid_response = lid.get_passkeys(username)

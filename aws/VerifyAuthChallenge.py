@@ -1,5 +1,6 @@
 import boto3
 import json
+import jwt
 
 from loginid import LoginID
 from os import environ
@@ -29,19 +30,35 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     lid = LoginID(LOGINID_BASE_URL, get_key_id())
 
-    challenge_answer = json.loads(challenge_answer)
-
-    if 'creationResult' not in challenge_answer and 'assertionResult' not in challenge_answer:
-        raise Exception("response not found")
-
     try:
         # finish sign in with FIDO2
         if authentication_type == "FIDO2_GET":
+            challenge_answer = json.loads(challenge_answer)
             lid.authenticate_with_passkey_complete(challenge_answer)
 
         # finish adding FIDO2 credential
         elif authentication_type == "FIDO2_CREATE":
+            challenge_answer = json.loads(challenge_answer)
             lid.register_with_passkey_complete(challenge_answer)
+
+        # verify JWT access token
+        elif authentication_type == "JWT_ACCESS":
+            # parse JWT token
+            username = event["userName"]
+            payload = jwt.decode(
+                challenge_answer,
+                options={"verify_signature": False},
+            )
+
+            if payload.get("appId") != lid.app_id:
+                raise Exception("Invalid JWT token")
+            if payload.get("username") != username:
+                raise Exception("Invalid JWT token")
+
+            lid.verify_jwt_access_token(challenge_answer)
+
+        else:
+            raise Exception("Invalid authentication type")
 
         response["answerCorrect"] = True
 

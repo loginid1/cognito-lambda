@@ -9,8 +9,8 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { getUserIDToken } from "../cognito";
 import { PasskeysStorage } from "../storage/passkeys";
-import { passkeyList } from "../services/credentials";
 import { PasskeyInfo } from "../services/types";
+import { Loginid } from "../cognito/";
 import * as cognito from "../cognito/";
 
 //can be generic
@@ -48,7 +48,7 @@ export const useFetchResources = (): Resources => {
       try {
         const token = await getUserIDToken(user);
 
-        const resources = [passkeyList(token)];
+        const resources = [Loginid.listPasskeys(token)];
         const fetched = await Promise.all(resources);
         const [passkeys] = fetched;
 
