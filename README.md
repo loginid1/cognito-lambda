@@ -7,65 +7,45 @@ An integration of Loginid and AWS Cognito authentication with custom authenticat
 - NodeJS (Frontend)
 - Cognito User Pool
 - AWS service
-- Loginid Admin Account
+- Loginid Dashboard Account
 
 ## Features
 
-- Register Password
-- Register FIDO2
-- Login Password
-- Login FIDO2
-- Add Mulitple FIDO2 Credentials
-- Add FIDO2 to Exisiting Password User
+- Register Passkey
+- Login Passkey
+- Add Mulitple Passkeys
 
 ## LoginID Set-Up
 
 You need the following items with LoginID in order to run this integration:
 
-- Web Tenant (Non-OIDC) base URL
-- Tenant level ES256 private key needed to call backend services
+- LoginID App Base URL
+- LoginID App API Key
 
 Here are some general steps:
 
-1. Head over to https://dashboard.gen2.playground.loginid.io and login into your account.
-2. Click on `Create Tenant`.
-3. Make sure `Non OIDC` tenant is selected.
-4. Enter a name for your tenant on the `Tenant Name` field.
-5. Enter the `RPID (Relying Party ID)` value of your hosted application. The demo will be running on localhost so enter `localhost` here.
-6. Enter the `Allowed Origins` URL of your hosted application. The origin of the demo is `http://localhost:1234` so enter `http://localhost:1234` here.
-7. Click on the Advanced `Configuration` tab and click the `Generate Key Pair` button - store the `private key` that gets generated
-   This will create a ES256 key pair where the public key is stored with LoginID and the private key will be shown here once. Copy the PEM formatted private key as it will be needed later.
-8. Finish creating your tenant and copy the `base URL`.
+1. Head over to https://dashboard.loginid.io and login into your account.
+2. Click on `Create Application`.
+3. Enter a name for your application on the `App Name` field or leave it as default.
+4. Enter the `Website URL` of your hosted application. The default URL of the demo locally is `http://localhost:1234` so enter `http://localhost:1234` here.
+5. Click on `Complete` button.
+6. Enter the `Settings` section.
+7. Copy the `Base URL` here.
+8. Click on `Add New Key`. Give it a name and select all passkeys scopes. Finish off with `Generate Key`.
+   - `passkey:list`
+   - `passkey:create`
+   - `passkey:update`
+   - `passkey:delete`
+9. Copy the `Key ID` here.
 
 From here you should have the following needed values:
 
-- Tenant Base URL
-- ES256 Private Key
-
-#### Note on RPIDs
-
-The RPID is a unique identifier that represents a relying party in the WebAuthn (Web Authentication) system. The RPID will be the host part of where your application is hosted. For example if your development application is hosted on:
-
-http://**localhost**:3000
-
-The RPID will be **localhost**. The bolded text are also valid RPIDs for the following examples:
-
-- https://**example**.com
-- https://**subdomain.example**.com
-
-WebAuthn relies on this identifier to associate authentication requests and responses with the correct relying party, ensuring secure and accurate authentication.
-
-#### Note on Allowed Origins
-
-Allowed origins are specific web domains or URLs permitted to make cross-origin requests to a web server. In the context of WebAuthn, these origins are crucial for security.
-
-If left blank, the value will default to the base URL of the RPID value. You only need to enter the origin of your application if you are dealing with `port numbers` or `subdomains`. For instance, if your application is hosted at `http://localhost:3000`, enter that URL here, as the port number is a required component.
-
-This ensures that only requests from `http://localhost:3000` are accepted for WebAuthn operations, adding an extra layer of security to the authentication process.
+- App Base URL
+- App API Key
 
 ## Cognito Set-Up
 
-Running the [CloudFormation](https://aws.amazon.com/cloudformation/) found in `./aws/TemplateAPI.yaml` will set up the services and the backend needed to run this demo. When the template is finished running, the output will produce three values:
+Running the [CloudFormation](https://aws.amazon.com/cloudformation/) found in `./aws/Template.yaml` will set up the services and the backend needed to run this demo. When the template is finished running, the output will produce three values:
 
 1. PasskeyAPIEndpoint - The backend base URL for the demo
 2. UserPoolId - Cognito userpool ID
@@ -73,14 +53,8 @@ Running the [CloudFormation](https://aws.amazon.com/cloudformation/) found in `.
 
 Enter the required parameters when running the template:
 
-1. `LOGINIDBaseURL` - The Tenant base URL from LoginID
-2. `LOGINIDPrivateKey` - The ES256 private key from LoginID
-
-When entering the private key, replace the newlines with the `\n` characters. For example:
-
-```
------BEGIN PRIVATE KEY-----\nMIG...GMT/gj\n-----END PRIVATE KEY-----
-```
+1. `LOGINIDBaseURL` - The base URL from LoginID
+2. `LOGINIDAPIKeyID` - API key ID required for LoginID backend services
 
 Running the template will create and configure the settings for the following services:
 
@@ -93,11 +67,28 @@ Running the template will create and configure the settings for the following se
 7. API Gateway Proxy
 8. Rest API Lambda
 
-The `Secrets Manager` service is needed to securely store the ES256 private key that was provided from LoginID.
+The `Secrets Manager` service is needed to securely store the API key ID that was provided from LoginID.
 
 You can delete the CloudFormation stack once you are done with the demo.
 
-When you run the template located at `./aws/Template.yaml`, it will configure all the necessary services (not including API Gateway and Rest API Lambda) to create a Cognito User Pool with customized authentication for passkeys. It's recommended to use this template outside of the demo if you wish to set up a new user pool.
+## Running Template With AWS CLI
+
+You can run the template and create a stack with the following commands:
+
+```bash
+aws cloudformation create-stack --stack-name LOGINID-TEST --template-body file://aws/Template.yaml --parameters ParameterKey="LOGINIDBaseURL",ParameterValue="<APP_BASE_URL>" ParameterKey="LOGINIDAPIKeyID",ParameterValue="<APP_KEY_ID>" ParameterKey="IncludePasskeyAPI",ParameterValue="true" --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
+
+aws cloudformation wait stack-create-complete --stack-name LOGINID-TEST
+
+aws cloudformation describe-stacks --stack-name LOGINID-TEST
+```
+
+You can delete the stack once you are complete with:
+
+```bash
+aws cloudformation delete-stack --stack-name LOGINID-TEST
+aws cloudformation wait stack-delete-complete --stack-name LOGINID-TEST
+```
 
 ## Demo Set-Up
 
