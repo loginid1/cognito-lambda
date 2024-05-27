@@ -118,7 +118,7 @@ Resources:
     Properties:
       Name: !Sub ${AWS::StackName}-loginid-keys
       Description: LoginID keys
-      SecretString: !Ref LOGINIDPrivateKey
+      SecretString: !Ref LOGINIDAPIKeyID
 
   LoginIDKeysSecretPolicy:
     Type: AWS::SecretsManager::ResourcePolicy
@@ -146,10 +146,10 @@ Parameters:
   LOGINIDBaseURL:
     Type: String
     Description: "BaseURL required for LoginID service"
-  LOGINIDPrivateKey:
+  LOGINIDAPIKeyID:
     Type: String
     NoEcho: true
-    Description: "Private key needed for generating authorization token required for LoginID service"
+    Description: "API key ID required for LoginID service"
   CognitoUserPoolID:
     Type: String
     Description: "The Cognito User Pool ID to apply custom authentication with LoginID passkeys"
