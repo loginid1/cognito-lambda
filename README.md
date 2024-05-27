@@ -76,10 +76,15 @@ You can delete the CloudFormation stack once you are done with the demo.
 You can run the template and create a stack with the following commands:
 
 ```bash
-aws cloudformation create-stack --stack-name LOGINID-TEST --template-body file://aws/Template.yaml --parameters ParameterKey="LOGINIDBaseURL",ParameterValue="<APP_BASE_URL>" ParameterKey="LOGINIDAPIKeyID",ParameterValue="<APP_KEY_ID>" ParameterKey="IncludePasskeyAPI",ParameterValue="true" --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
-
+aws cloudformation create-stack \
+    --stack-name LOGINID-TEST \
+    --template-body file://aws/Template.yaml \
+    --parameters \
+        ParameterKey="LOGINIDBaseURL",ParameterValue="<APP_BASE_URL>" \
+        ParameterKey="LOGINIDAPIKeyID",ParameterValue="<APP_KEY_ID>" \
+        ParameterKey="IncludePasskeyAPI",ParameterValue="true" \
+    --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
 aws cloudformation wait stack-create-complete --stack-name LOGINID-TEST
-
 aws cloudformation describe-stacks --stack-name LOGINID-TEST
 ```
 
