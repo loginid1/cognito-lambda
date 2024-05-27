@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import React from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Button, Input, UnstyledButton } from "@mantine/core";
 import useStyle from "./styles";
 import ErrorText from "../../components/ErrorText";
@@ -7,6 +8,10 @@ import { Loginid } from "../../cognito/";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
+import {
+  passkeyAuthInit,
+  passkeyAuthComplete,
+} from "../../services/credentials";
 
 const PasswordlessLogin = function ({
   handlerEmail,
@@ -17,10 +22,49 @@ const PasswordlessLogin = function ({
   const { classes } = useStyle(config);
   const [error, setError] = useState("");
   const { login } = useAuth();
+  const [abortController] = useState(new AbortController());
+  const count = useRef(0);
+
+  useEffect(() => {
+    const conditionalUI = async () => {
+      try {
+        const isConditionalUIAvailable =
+          window.PublicKeyCredential?.isConditionalMediationAvailable;
+        if (!isConditionalUIAvailable) return;
+
+        const result = await isConditionalUIAvailable();
+        if (!result) return;
+
+        const options = { abortSignal: abortController.signal };
+        await Loginid.signInWithConditionalUI(options);
+
+        const user = cognito.getCurrentUser();
+        await cognito.getUserSession(user);
+
+        if (user) {
+          login(user);
+        }
+      } catch (e) {
+        setError(e.message);
+      }
+    };
+
+    if (count.current === 0) {
+      count.current++;
+      conditionalUI();
+    }
+
+    return () => {
+      count.current++;
+      if (count.current < 3) return;
+      abortController.abort();
+    };
+  }, []);
 
   const handlerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
+      abortController.abort("Cancel conditional UI");
       await Loginid.signInPasskey(email.toLowerCase());
 
       //NOTE: get user session needs to be called to authenticate fully
@@ -45,6 +89,7 @@ const PasswordlessLogin = function ({
           placeholder="Email"
           type="email"
           value={email}
+          autoComplete="username webauthn"
         />
         <Button type="submit" size="md" classNames={{ root: classes.button }}>
           Login with passkey

@@ -1,6 +1,6 @@
 export interface PasskeyInfo {
   name: string;
-  device: object;
+  device: string;
   createdAt: string;
   id: string;
 }
