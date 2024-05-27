@@ -1,5 +1,6 @@
 import boto3
 import json
+import jwt
 
 from loginid import LoginID
 from os import environ
@@ -42,6 +43,18 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
         # verify JWT access token
         elif authentication_type == "JWT_ACCESS":
+            # parse JWT token
+            username = event["userName"]
+            payload = jwt.decode(
+                challenge_answer,
+                options={"verify_signature": False},
+            )
+
+            if payload.get("appId") != lid.app_id:
+                raise Exception("Invalid JWT token")
+            if payload.get("username") != username:
+                raise Exception("Invalid JWT token")
+
             lid.verify_jwt_access_token(challenge_answer)
 
         else:
