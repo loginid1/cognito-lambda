@@ -281,7 +281,397 @@ Resources:
               Service:
                 - lambda.amazonaws.com
 
+  RestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Condition: ShouldCreatePasskeyAPI
+    Properties:
+      Name: !Sub ${AWS::StackName}-Credential API
+      Description: API needed for creating and managing credentials
+      Body:
+        openapi: "3.0.1"
+        info:
+          title: "CredentialAPI"
+          description: "Gateway for LoginID credential API"
+          version: "2023-08-21T05:58:04Z"
+        paths:
+          /passkeys/{id}:
+            put:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              security:
+              - LoginID-Cognito-Pool: []
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+            delete:
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              responses:
+                "200":
+                  description: "200 response"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              security:
+              - LoginID-Cognito-Pool: []
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+            options:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+          /passkeys:
+            get:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              security:
+              - LoginID-Cognito-Pool: []
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+            options:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+          /passkeys/auth/init:
+            post:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+            options:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+          /passkeys/auth/complete:
+            post:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                type: "aws_proxy"
+                httpMethod: "POST"
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PasskeyAPI.Arn}/invocations
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                passthroughBehavior: "when_no_match"
+                contentHandling: "CONVERT_TO_TEXT"
+            options:
+              responses:
+                "200":
+                  description: "200 response"
+                  headers:
+                    Access-Control-Allow-Origin:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Methods:
+                      schema:
+                        type: "string"
+                    Access-Control-Allow-Headers:
+                      schema:
+                        type: "string"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/Empty"
+              x-amazon-apigateway-integration:
+                type: "mock"
+                responses:
+                  default:
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+                      method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestTemplates:
+                  application/json: "{\"statusCode\": 200}"
+                passthroughBehavior: "when_no_match"
+        components:
+          schemas:
+            Empty:
+              title: "Empty Schema"
+              type: "object"
+          securitySchemes:
+            LoginID-Cognito-Pool:
+              type: "apiKey"
+              name: "Authorization"
+              in: "header"
+              x-amazon-apigateway-authtype: "cognito_user_pools"
+              x-amazon-apigateway-authorizer:
+                type: "cognito_user_pools"
+                providerARNs:
+                  - Fn::GetAtt:
+                      - UserPool
+                      - Arn
+
+  ProxyResource:
+    Type: "AWS::ApiGateway::Resource"
+    Condition: ShouldCreatePasskeyAPI
+    Properties:
+      ParentId: !GetAtt RestAPI.RootResourceId
+      RestApiId: !Ref RestAPI
+      PathPart: '{proxy+}'
+
+  APIGatewayRootMethod:
+    Type: "AWS::ApiGateway::Method"
+    Condition: ShouldCreatePasskeyAPI
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        IntegrationResponses:
+          -
+            StatusCode: 200
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt PasskeyAPI.Arn
+      ResourceId: !Ref ProxyResource
+      RestApiId: !Ref RestAPI
+
+  APIGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    Condition: ShouldCreatePasskeyAPI
+    DependsOn:
+      - APIGatewayRootMethod
+    Properties:
+      RestApiId: !Ref RestAPI
+      StageName: dev
+
+  Authorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Condition: ShouldCreatePasskeyAPI
+    Properties:
+      IdentitySource: method.request.header.Authorization
+      Name: CognitoAuthorizer
+      ProviderARNs:
+        - Fn::GetAtt:
+            - UserPool
+            - Arn
+      RestApiId: !Ref RestAPI
+      Type: COGNITO_USER_POOLS
+
+  PasskeyAPI:
+    Type: 'AWS::Serverless::Function'
+    Condition: ShouldCreatePasskeyAPI
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-PasskeyAPI
+      Description: 
+      MemorySize: 128
+      Timeout: 3
+      Handler: index.lambda_handler
+      Runtime: python3.8
+      Environment:
+        Variables:
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_REGION_NAME: !Ref AWS::Region
+          LOGINID_BASE_URL: !Ref LOGINIDBaseURL
+          LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'ses:SendEmail'
+                - 'ses:SendRawEmail'
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref LoginIDClientSecret
+      Architectures:
+        - x86_64
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      EphemeralStorage:
+        Size: 512
+      Layers:
+        - !Ref PythonSDK
+      CodeUri:
+        Bucket: !Ref LoginIDBucket
+        Key: PasskeyAPI.zip
+
+  lambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Condition: ShouldCreatePasskeyAPI
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PasskeyAPI.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/*
+
+Conditions:
+  ShouldCreatePasskeyAPI: !Equals [!Ref IncludePasskeyAPI, "true"]
+
 Outputs:
+  PasskeyAPIEndpoint:
+    Condition: ShouldCreatePasskeyAPI
+    Value: !Sub https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/dev
   UserPoolId:
     Value: !Ref UserPool
   UserPoolClientId:
@@ -295,3 +685,10 @@ Parameters:
     Type: String
     NoEcho: true
     Description: "API key ID required for LoginID service"
+  IncludePasskeyAPI:
+    Description: "Specify whether to create resources for Cognito API Gateway for passkey management with LoginID"
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
