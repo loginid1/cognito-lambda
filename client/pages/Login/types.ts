@@ -13,6 +13,7 @@ export enum Login {
   LoginPasswordless = "LOGIN_PASSWORDLESS",
   LoginPassword = "LOGIN_PASSWORD",
   LoginPhoneOTP = "LOGIN_PHONE_OTP",
+  LoginEmailOTP = "LOGIN_EMAIL_OTP",
   LoginMagicLink = "LOGIN_MAGIC_LINK",
   EmailVerification = "EMAIL_VERIFICATION",
   CompleteRegistration = "COMPLETE_REGISTRATION",

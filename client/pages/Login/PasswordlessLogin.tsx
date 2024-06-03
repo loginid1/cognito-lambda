@@ -8,10 +8,6 @@ import { Loginid } from "../../cognito/";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConfig } from "../../contexts/ConfigContext";
 import { CommonFormProps, Login } from "./types";
-import {
-  passkeyAuthInit,
-  passkeyAuthComplete,
-} from "../../services/credentials";
 
 const PasswordlessLogin = function ({
   handlerEmail,
@@ -94,12 +90,20 @@ const PasswordlessLogin = function ({
         <Button type="submit" size="md" classNames={{ root: classes.button }}>
           Login with passkey
         </Button>
+        {/* reference for password login
         <Button
           onClick={() => handlerWhichLogin(Login.LoginPassword)}
           classNames={{ root: classes.button }}
           variant="outline"
         >
           Login with password
+        </Button>*/}
+        <Button
+          onClick={() => handlerWhichLogin(Login.LoginEmailOTP)}
+          classNames={{ root: classes.button }}
+          variant="outline"
+        >
+          Login with email
         </Button>
         <UnstyledButton
           onClick={() => handlerWhichLogin(Login.SignUp)}
