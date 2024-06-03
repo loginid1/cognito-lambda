@@ -1,6 +1,8 @@
 import boto3
 import json
 import jwt
+import random
+import string
 
 from loginid import LoginID
 from os import environ
@@ -8,8 +10,10 @@ from jwt import PyJWKClient
 
 LOGINID_BASE_URL = environ.get("LOGINID_BASE_URL") or ""
 LOGINID_SECRET_NAME = environ.get("LOGINID_SECRET_NAME") or ""
+SES_SENDER_EMAIL = environ.get("SES_SENDER_EMAIL") or ""
 
 secretsmanager = boto3.client("secretsmanager")
+ses_client = boto3.client("ses")
 
 
 def lambda_handler(event: dict, _: dict) -> dict:
@@ -73,6 +77,40 @@ def lambda_handler(event: dict, _: dict) -> dict:
         }
         return event
 
+    elif client_metadata["authentication_type"] == "EMAIL_OTP":
+        # only send OTP if user is not retrying
+        if len(session) == 1:
+            # Generate OTP
+            otp = ''.join(random.choices(string.digits, k=6))
+
+            # Send OTP to email with SES
+            send_otp_email(username, otp)
+
+            response["privateChallengeParameters"] = {
+                "challenge": "EMAIL_OTP",
+                "otp": otp
+            }
+            response["publicChallengeParameters"] = {
+                "challenge": "EMAIL_OTP"
+            }
+            response["challengeMetadata"] = otp
+
+        else:
+            # get latest session
+            session = session[-1]
+            otp = session.get("challengeMetadata", {})
+
+            response["privateChallengeParameters"] = {
+                "challenge": "EMAIL_OTP",
+                "otp": otp
+            }
+            response["publicChallengeParameters"] = {
+                "challenge": "EMAIL_OTP"
+            }
+            response["challengeMetadata"] = otp
+
+        return event
+
     else:
         raise Exception("Authentication type not supported")
 
@@ -121,3 +159,27 @@ def verify_cognito_id_token(event: dict, token: str):
     # check username claim
     if data["cognito:username"] != username:
         raise Exception("username claim mismatch")
+
+
+def send_otp_email(email: str, otp: str):
+    response = ses_client.send_email(
+        Source=SES_SENDER_EMAIL,
+        Destination={
+            'ToAddresses': [
+                email,
+            ],
+        },
+        Message={
+            'Subject': {
+                'Data': 'Your verification code',
+                'Charset': 'UTF-8'
+            },
+            'Body': {
+                'Text': {
+                    'Data': f'Your confirmation code is {otp}',
+                    'Charset': 'UTF-8'
+                }
+            }
+        }
+    )
+    print("OTP email sent:", response)

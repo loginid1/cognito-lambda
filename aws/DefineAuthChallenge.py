@@ -37,6 +37,27 @@ def lambda_handler(event: dict, _: dict) -> dict:
             response["issueTokens"] = False
             response["failAuthentication"] = False
             response["challengeName"] = "CUSTOM_CHALLENGE"
+            return event
+
+        if authentication_type == "EMAIL_OTP":
+            session_obj = session[-1]
+
+            # can retry 3 times before failing
+            if len(session) <= 4:
+                challenge_name = session_obj["challengeName"]
+                challenge_result = session_obj["challengeResult"]
+
+                if challenge_name == "CUSTOM_CHALLENGE" and challenge_result:
+                    response["issueTokens"] = True
+                    response["failAuthentication"] = False
+                # allow user to retry
+                else:
+                    response["issueTokens"] = False
+                    response["failAuthentication"] = False
+                    response["challengeName"] = "CUSTOM_CHALLENGE"
+            else:
+                response["issueTokens"] = False
+                response["failAuthentication"] = True
 
         valid_types = ["FIDO2_CREATE", "FIDO2_GET", "JWT_ACCESS"]
 

@@ -178,6 +178,8 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
+                  - ses:SendEmail
+                  - ses:SendRawEmail
                 Resource: "*"
 
   DefineAuthChallenge:
@@ -222,6 +224,7 @@ Resources:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
           LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+          SES_SENDER_EMAIL: !Ref SESSenderEmail
 
   CreateAuthChallengePermission:
     Type: AWS::Lambda::Permission
@@ -685,6 +688,9 @@ Parameters:
     Type: String
     NoEcho: true
     Description: "API key ID required for LoginID service"
+  SESSenderEmail:
+    Type: String
+    Description: "A verified SES sender email able to send OTP's"
   IncludePasskeyAPI:
     Description: "Specify whether to create resources for Cognito API Gateway for passkey management with LoginID"
     Type: String

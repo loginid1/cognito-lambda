@@ -1,15 +1,16 @@
 import requests
 from .utils import LoginIdClient
-from typing import Optional
+from typing import List, Optional
 
 
 class LoginID(LoginIdClient):
     def __init__(self, base_url: str, key_id: str, session: requests.Session = None):
         super().__init__(base_url, key_id, session)
 
-    def _fetch_grant_token(self, username: str, grant: str) -> str:
-        response = self.generate_grant(username, grant)
-        token = response.get("token")
+    def _fetch_grant_token(self, username: str) -> str:
+        grants = ["passkey:read", "passkey:write"]
+        response = self.generate_grant(username, grants)
+        token = response.get("token", "")
         return token
 
     def _clean_options(self, options: dict) -> dict:
@@ -66,7 +67,7 @@ class LoginID(LoginIdClient):
             if options.get("userAgent"):
                 headers["User-Agent"] = options["userAgent"]
 
-        token = self._fetch_grant_token(username, "passkey:create")
+        token = self._fetch_grant_token(username)
         return self.post("/fido2/v2/reg/init", payload, headers=headers, bearer=token)
 
     def register_with_passkey_complete(self, response: dict) -> Optional[dict]:
@@ -76,20 +77,20 @@ class LoginID(LoginIdClient):
         )
 
     def get_passkeys(self, username: str) -> Optional[list]:
-        token = self._fetch_grant_token(username, "passkey:list")
+        token = self._fetch_grant_token(username)
         return self.get("/fido2/v2/passkeys", bearer=token) or []
 
     def delete_passkey(self, username: str, passkey_uuid: str) -> Optional[dict]:
-        token = self._fetch_grant_token(username, "passkey:delete")
+        token = self._fetch_grant_token(username)
         return self.delete(f"/fido2/v2/passkeys/{passkey_uuid}", bearer=token)
 
     def rename_passkey(self, username: str, new_name: str, passkey_uuid: str) -> Optional[dict]:
         payload = {"name": new_name}
-        token = self._fetch_grant_token(username, "passkey:update")
+        token = self._fetch_grant_token(username)
         return self.put(f"/fido2/v2/passkeys/{passkey_uuid}", payload, bearer=token)
 
-    def generate_grant(self, username: str, grant: str) -> Optional[dict]:
-        payload = {"username": username, "grant": grant}
+    def generate_grant(self, username: str, grants: List[str]) -> Optional[dict]:
+        payload = {"username": username, "grants": grants}
         return self.post("/fido2/v2/mgmt/grant", payload, api_key_auth=True)
 
     def verify_jwt_access_token(self, jwt: str) -> Optional[dict]:

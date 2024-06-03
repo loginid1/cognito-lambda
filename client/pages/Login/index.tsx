@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 import { Image, Title } from "@mantine/core";
 import { inputHandler } from "../../handlers/common";
@@ -12,6 +13,7 @@ import PasswordRegister from "./PasswordRegister";
 import MagicLinkLogin from "./MagicLinkLogin";
 import EmailVerification from "./EmailVerification";
 import RegisterComplete from "./RegisterComplete";
+import EmailOTPLogin from "./EmailOTPLogin";
 import SignUp from "./SignUp";
 import Footer from "./Footer";
 import { useConfig } from "../../contexts/ConfigContext";
@@ -78,6 +80,16 @@ const Login = function () {
     case LoginEnum.EmailVerification:
       Form = (
         <EmailVerification
+          handlerEmail={handlerEmail}
+          handlerWhichLogin={handlerWhichLogin}
+          email={email}
+        />
+      );
+      break;
+
+    case LoginEnum.LoginEmailOTP:
+      Form = (
+        <EmailOTPLogin
           handlerEmail={handlerEmail}
           handlerWhichLogin={handlerWhichLogin}
           email={email}

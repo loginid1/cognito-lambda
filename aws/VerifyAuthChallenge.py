@@ -41,6 +41,12 @@ def lambda_handler(event: dict, _: dict) -> dict:
             challenge_answer = json.loads(challenge_answer)
             lid.register_with_passkey_complete(challenge_answer)
 
+        elif authentication_type == "EMAIL_OTP":
+            # get otp from private challenge parameters
+            otp = request["privateChallengeParameters"].get("otp", "")
+            if otp != challenge_answer:
+                raise Exception("Invalid OTP")
+
         # verify JWT access token
         elif authentication_type == "JWT_ACCESS":
             # parse JWT token
