@@ -1,8 +1,11 @@
 import boto3
 import json
 import jwt
+import re
+import base64
+import urllib.request
 
-from loginid import LoginID
+
 from os import environ
 
 
@@ -28,27 +31,9 @@ def lambda_handler(event: dict, _: dict) -> dict:
         response["answerCorrect"] = False
         return event
 
-    lid = LoginID(LOGINID_BASE_URL, get_key_id())
-
     try:
-        # finish sign in with FIDO2
-        if authentication_type == "FIDO2_GET":
-            challenge_answer = json.loads(challenge_answer)
-            lid.authenticate_with_passkey_complete(challenge_answer)
-
         # finish adding FIDO2 credential
-        elif authentication_type == "FIDO2_CREATE":
-            challenge_answer = json.loads(challenge_answer)
-            lid.register_with_passkey_complete(challenge_answer)
-
-        elif authentication_type == "EMAIL_OTP":
-            # get otp from private challenge parameters
-            otp = request["privateChallengeParameters"].get("otp", "")
-            if otp != challenge_answer:
-                raise Exception("Invalid OTP")
-
-        # verify JWT access token
-        elif authentication_type == "JWT_ACCESS":
+        if authentication_type == "FIDO2_CREATE" or authentication_type == "JWT_ACCESS":
             # parse JWT token
             username = event["userName"]
             payload = jwt.decode(
@@ -56,12 +41,18 @@ def lambda_handler(event: dict, _: dict) -> dict:
                 options={"verify_signature": False},
             )
 
-            if payload.get("appId") != lid.app_id:
+            if payload.get("aud") != get_loginid_app_id():
                 raise Exception("Invalid JWT token")
             if payload.get("username") != username:
                 raise Exception("Invalid JWT token")
 
-            lid.verify_jwt_access_token(challenge_answer)
+            verify_jwt_access_token(challenge_answer)
+
+        elif authentication_type == "EMAIL_OTP":
+            # get otp from private challenge parameters
+            otp = request["privateChallengeParameters"].get("otp", "")
+            if otp != challenge_answer:
+                raise Exception("Invalid OTP")
 
         else:
             raise Exception("Invalid authentication type")
@@ -79,3 +70,41 @@ def get_key_id() -> str:
     secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
     key_id = secret["SecretString"]
     return key_id
+
+
+def get_loginid_app_id() -> str:
+    pattern = r"https://([0-9a-fA-F-]+)\.api\..*\.loginid\.io"
+    match = re.search(pattern, LOGINID_BASE_URL)
+
+    if match:
+        app_id = match.group(1)
+    else:
+        raise Exception("Invalid LoginID base URL")
+
+    return app_id
+
+
+def verify_jwt_access_token(token: str) -> None:
+    print(token)
+    url = f"{LOGINID_BASE_URL}/fido2/v2/mgmt/token/verify"
+    headers = {
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "jwtAccess": token
+    }
+
+    # basic auth
+    credentials = f"{get_key_id()}:"
+    encoded_credentials = base64.urlsafe_b64encode(credentials.encode()).decode()
+    authorization = f"Basic {encoded_credentials}"
+    headers["Authorization"] = authorization
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers)
+
+    with urllib.request.urlopen(req) as res:
+        if res.status != 204:
+            raise Exception("Invalid JWT token")
+
+    return

@@ -78,6 +78,7 @@ Resources:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
           LOGINID_SECRET_NAME: !Sub ${AWS::StackName}-loginid-keys
+          SES_SENDER_EMAIL: !Ref SESSenderEmail
 
   CreateAuthChallengePermission:
     Type: AWS::Lambda::Permission
@@ -150,6 +151,9 @@ Parameters:
     Type: String
     NoEcho: true
     Description: "API key ID required for LoginID service"
+  SESSenderEmail:
+    Type: String
+    Description: "A verified SES sender email able to send OTP's"
   CognitoUserPoolID:
     Type: String
     Description: "The Cognito User Pool ID to apply custom authentication with LoginID passkeys"
