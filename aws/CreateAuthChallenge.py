@@ -1,12 +1,15 @@
 import boto3
+import urllib.request
+import re
 import json
 import jwt
 import random
 import string
+import base64
 
-from loginid import LoginID
 from os import environ
 from jwt import PyJWKClient
+
 
 LOGINID_BASE_URL = environ.get("LOGINID_BASE_URL") or ""
 LOGINID_SECRET_NAME = environ.get("LOGINID_SECRET_NAME") or ""
@@ -18,7 +21,6 @@ ses_client = boto3.client("ses")
 
 def lambda_handler(event: dict, _: dict) -> dict:
     print(event)
-    lid = LoginID(LOGINID_BASE_URL, get_key_id())
 
     request = event["request"]
     response = event["response"]
@@ -47,15 +49,8 @@ def lambda_handler(event: dict, _: dict) -> dict:
 
     # metadata will contain authentication type
 
-    # sign in with FIDO2
-    if client_metadata["authentication_type"] == "FIDO2_GET":
-        options = client_metadata.get("options", "{}")
-        options = json.loads(options)
-        init_res = lid.authenticate_with_passkey_init(username, options)
-        public_key = json.dumps(init_res)
-
     # register/add FIDO2 credential to existing user
-    elif client_metadata["authentication_type"] == "FIDO2_CREATE":
+    if client_metadata["authentication_type"] == "FIDO2_CREATE":
         options = client_metadata.get("options", "{}")
         options = json.loads(options)
 
@@ -63,8 +58,16 @@ def lambda_handler(event: dict, _: dict) -> dict:
         id_token = options.get("idToken", "")
         verify_cognito_id_token(event, id_token)
 
-        init_res = lid.register_with_passkey_init(username, options)
+        init_res = register_with_passkey_init(username, options)
         public_key = json.dumps(init_res)
+
+        response["privateChallengeParameters"] = {
+            "public_key": public_key
+        }
+        response["publicChallengeParameters"] = {
+            "public_key": public_key,
+        }
+        return event
 
     # sign in with verified LoginID access JWT
     elif client_metadata["authentication_type"] == "JWT_ACCESS":
@@ -114,21 +117,99 @@ def lambda_handler(event: dict, _: dict) -> dict:
     else:
         raise Exception("Authentication type not supported")
 
-    response["privateChallengeParameters"] = {
-        "public_key": public_key
-    }
-    response["publicChallengeParameters"] = {
-        "public_key": public_key,
-    }
-
-    print(event)
-    return event
-
 
 def get_key_id() -> str:
     secret = secretsmanager.get_secret_value(SecretId=LOGINID_SECRET_NAME)
     key_id = secret["SecretString"]
     return key_id
+
+
+def register_with_passkey_init(username: str, options: dict) -> dict:
+    # get app id from base url
+    pattern = r"https://([0-9a-fA-F-]+)\.api\..*\.loginid\.io"
+    match = re.search(pattern, LOGINID_BASE_URL)
+
+    if match:
+        app_id = match.group(1)
+    else:
+        raise Exception("Invalid LoginID base URL")
+
+    '''
+    Grant call
+    '''
+    url = f"{LOGINID_BASE_URL}/fido2/v2/mgmt/grant"
+    headers = {
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "grants": ["passkey:read", "passkey:write"],
+        "username": username
+    }
+
+    # basic auth
+    credentials = f"{get_key_id()}:"
+    encoded_credentials = base64.urlsafe_b64encode(credentials.encode()).decode()
+    authorization = f"Basic {encoded_credentials}"
+    headers["Authorization"] = authorization
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers)
+
+    with urllib.request.urlopen(req) as res:
+        res = res.read().decode("utf-8")
+        res_dict = json.loads(res)
+
+    management_token = res_dict["token"]
+
+    '''
+    Register Passkey Init
+    '''
+    url = f"{LOGINID_BASE_URL}/fido2/v2/reg/init"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {management_token}"
+    }
+    payload = {
+        "app": {"id": app_id},
+        "deviceInfo": {},
+        "user": {"username": username, "usernameType": "email"}
+    }
+
+    if options:
+        deep_update(payload, clean_loginid_options(options))
+        if options.get("userAgent"):
+            headers["User-Agent"] = options["userAgent"]
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers)
+
+    with urllib.request.urlopen(req) as res:
+        res = res.read().decode("utf-8")
+        res_dict = json.loads(res)
+
+    return res_dict
+
+
+def clean_loginid_options(options: dict) -> dict:
+    # in case username is sent as options
+    if options and options.get("user", {}).get("username"):
+        options["user"].pop("username")
+
+    # in case app id is sent as options
+    if options and options.get("app", {}).get("id"):
+        options["app"].pop("id")
+
+    return options
+
+
+def deep_update(original: dict, update: dict) -> dict:
+    for key, value in update.items():
+        if isinstance(value, dict):
+            original[key] = deep_update(original.get(key, {}), value)
+        else:
+            original[key] = value
+
+    return original
 
 
 def verify_cognito_id_token(event: dict, token: str):
