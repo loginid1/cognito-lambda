@@ -32,7 +32,7 @@ const PasswordlessLogin = function ({
         if (!result) return;
 
         const options = { abortSignal: abortController.signal };
-        await Loginid.signInWithConditionalUI(options);
+        await Loginid.signInWithPasskeyAutofill(options);
 
         const user = cognito.getCurrentUser();
         await cognito.getUserSession(user);
