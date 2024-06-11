@@ -30,8 +30,7 @@ const PasswordlessRegister = ({
       validateEmail(email);
 
       await cognito.authenticate(email, password, "PASSWORD");
-      const token = await cognito.getUserIDToken(null);
-      await Loginid.addPasskey(email, token);
+      await Loginid.addPasskey(email);
 
       handlerWhichLogin(Login.CompleteRegistration);
     } catch (e: any) {

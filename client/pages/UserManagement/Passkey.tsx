@@ -1,12 +1,11 @@
 import React from "react";
 import { ChangeEvent, KeyboardEvent, useState } from "react";
 import { Accordion, Input } from "@mantine/core";
-import { Loginid, getUserIDToken } from "../../cognito";
+import { Loginid } from "../../cognito";
 import { useRefFocus } from "../../hooks/common";
 import { EMPTY_PASSKEY_NAME } from "../../errors/";
 import { SmallIconButton } from "../../components/Button/";
 import { commonError } from "../../errors";
-import { useAuth } from "../../contexts/AuthContext";
 import { useConfig } from "../../contexts/ConfigContext";
 import EditIcon from "../../icons/Edit";
 import CloseIcon from "../../icons/CloseIcon";
@@ -33,18 +32,13 @@ const Passkey = function ({
   const { config } = useConfig();
   const { classes } = useStyles(config);
   const [error, setError] = useState("");
-  const { user } = useAuth();
   const inputRef = useRefFocus(shouldFocus);
 
   const handleOnBlur = async () => {
     try {
       if (name.length === 0) throw new Error(EMPTY_PASSKEY_NAME);
       setError("");
-
-      const token = await getUserIDToken(user);
-      //might need to handle this change better
-      //no await
-      Loginid.renamePasskey(token, id, name);
+      Loginid.renamePasskey(id, name);
 
       handleFocus(null);
     } catch (e: any) {

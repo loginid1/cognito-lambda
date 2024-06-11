@@ -12,7 +12,6 @@ import { useFetchResources } from "../../hooks/common";
 import { commonError } from "../../errors";
 import { useConfig } from "../../contexts/ConfigContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { getUserIDToken } from "../../cognito";
 import { Loginid } from "../../cognito";
 import * as cognito from "../../cognito/";
 
@@ -53,9 +52,8 @@ const Passkeys = function () {
   const handleDelete = async () => {
     try {
       if (!passkeyID) throw new Error("No passkey ID");
-      const token = await getUserIDToken(user);
       //no await
-      Loginid.deletePasskey(token, passkeyID);
+      Loginid.deletePasskey(passkeyID);
 
       const newData = passkeys.filter((passkey) => passkey.id !== passkeyID);
       setPasskeys(newData);
@@ -74,7 +72,7 @@ const Passkeys = function () {
 
       await Loginid.addPasskey(username, token);
 
-      const passkeys = await Loginid.listPasskeys(token);
+      const passkeys = await Loginid.listPasskeys();
       setPasskeys([...passkeys]);
     } catch (e: any) {
       setError(commonError(e));

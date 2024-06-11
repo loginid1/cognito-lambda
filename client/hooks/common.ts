@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getUserIDToken } from "../cognito";
 import { PasskeysStorage } from "../storage/passkeys";
 import { PasskeyInfo } from "../services/types";
 import { Loginid } from "../cognito/";
@@ -46,9 +45,7 @@ export const useFetchResources = (): Resources => {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const token = await getUserIDToken(user);
-
-        const resources = [Loginid.listPasskeys(token)];
+        const resources = [Loginid.listPasskeys()];
         const fetched = await Promise.all(resources);
         const [passkeys] = fetched;
 
