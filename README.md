@@ -32,10 +32,8 @@ Here are some general steps:
 6. Enter the `Settings` section.
 7. Copy the `Base URL` here.
 8. Click on `Add New Key`. Give it a name and select all passkeys scopes. Finish off with `Generate Key`.
-   - `passkey:list`
-   - `passkey:create`
-   - `passkey:update`
-   - `passkey:delete`
+   - `passkey:read`
+   - `passkey:write`
 9. Copy the `Key ID` here.
 
 From here you should have the following needed values:
@@ -47,9 +45,8 @@ From here you should have the following needed values:
 
 Running the [CloudFormation](https://aws.amazon.com/cloudformation/) found in `./aws/Template.yaml` will set up the services and the backend needed to run this demo. When the template is finished running, the output will produce three values:
 
-1. PasskeyAPIEndpoint - The backend base URL for the demo
-2. UserPoolId - Cognito userpool ID
-3. UserPoolClientId - public Cognito client ID
+1. UserPoolId - Cognito userpool ID
+2. UserPoolClientId - public Cognito client ID
 
 Enter the required parameters when running the template:
 
@@ -64,8 +61,6 @@ Running the template will create and configure the settings for the following se
 4. DefineAuthChallenge Lambda
 5. CreateAuthChallenge Lambda
 6. VerifyAuthChallenge Lambda
-7. API Gateway Proxy
-8. Rest API Lambda
 
 The `Secrets Manager` service is needed to securely store the API key ID that was provided from LoginID.
 
@@ -82,11 +77,13 @@ aws cloudformation create-stack \
     --parameters \
         ParameterKey="LOGINIDBaseURL",ParameterValue="<APP_BASE_URL>" \
         ParameterKey="LOGINIDAPIKeyID",ParameterValue="<APP_KEY_ID>" \
-        ParameterKey="IncludePasskeyAPI",ParameterValue="true" \
+        ParameterKey="SESSenderEmail",ParameterValue="true" \
     --capabilities CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM
 aws cloudformation wait stack-create-complete --stack-name LOGINID-TEST
 aws cloudformation describe-stacks --stack-name LOGINID-TEST
 ```
+
+Setting an email to SESSenderEmail will enable email OTP sign-in feature and is optional. This email address must be either individually verified with Amazon SES, or from a domain that has been verified with Amazon SES.
 
 You can delete the stack once you are complete with:
 
@@ -95,12 +92,20 @@ aws cloudformation delete-stack --stack-name LOGINID-TEST
 aws cloudformation wait stack-delete-complete --stack-name LOGINID-TEST
 ```
 
+## LoginID Set-Up Revisited
+
+After obtaining your `Cognito User Pool ID`, you need to enter it as a custom attribute in the `Attributes` section of your LoginID dashboard application settings.
+
+| Name                  | Value                         |
+| --------------------- | ----------------------------- |
+| **CognitoUserPoolId** | **Your Cognito User Pool ID** |
+
 ## Demo Set-Up
 
 After completing the execution of the [CloudFormation template](#cognito-set-up), please proceed by adding the following environment variables to an `.env` file with the outputted variables:
 
 ```
-REACT_PASSKEY_API_BASE_URL=<PasskeyAPIEndpoint>
+REACT_LOGINID_BASE_URL=<LOGINIDBaseURL>
 REACT_COGNITO_USER_POOL_ID=<UserPoolId>
 REACT_COGNITO_CLIENT_ID=<UserPoolClientId>
 ```
