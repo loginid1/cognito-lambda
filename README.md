@@ -1,6 +1,6 @@
 # loginid-cognito-lambda
 
-An integration of Loginid and AWS Cognito authentication with custom authentication Lambdas.
+An integration of Loginid and AWS Cognito custom authentication.
 
 ## Requirements
 
