@@ -130,3 +130,14 @@ If you would like to use Docker instead, enter the following commands:
 docker build -t loginid-cognito .
 docker run -p 1234:1234 -v "$(pwd):/usr/src/app" loginid-cognito
 ```
+
+## Contact and Support
+
+- **Email**: [support@loginid.io](mailto:support@loginid.io)
+- **Community Chat**: [Join our Slack](https://loginidiocommunity.slack.com)
+- **Documentation**: [Read our full documentation](https://docs.loginid.io)
+
+
+## License
+
+This project is under Apache 2.0. See [LICENSE.md](./LICENSE.md)
