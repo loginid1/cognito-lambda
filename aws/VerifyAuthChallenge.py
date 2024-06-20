@@ -32,8 +32,9 @@ def lambda_handler(event: dict, _: dict) -> dict:
         return event
 
     try:
-        # finish adding FIDO2 credential
-        if authentication_type == "FIDO2_CREATE" or authentication_type == "JWT_ACCESS":
+        valid_types = ["FIDO2_CREATE", "FIDO2_GET", "JWT_ACCESS"]
+
+        if valid_types.count(authentication_type):
             # parse JWT token
             username = event["userName"]
             payload = jwt.decode(

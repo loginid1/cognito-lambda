@@ -69,6 +69,21 @@ def lambda_handler(event: dict, _: dict) -> dict:
         }
         return event
 
+    elif client_metadata["authentication_type"] == "FIDO2_GET":
+        options = client_metadata.get("options", "{}")
+        options = json.loads(options)
+
+        init_res = authenticate_with_passkey_init(username, options)
+        public_key = json.dumps(init_res)
+
+        response["privateChallengeParameters"] = {
+            "public_key": public_key
+        }
+        response["publicChallengeParameters"] = {
+            "public_key": public_key,
+        }
+        return event
+
     # sign in with verified LoginID access JWT
     elif client_metadata["authentication_type"] == "JWT_ACCESS":
         # cognito requires a challenge to be issued
@@ -124,16 +139,7 @@ def get_key_id() -> str:
     return key_id
 
 
-def register_with_passkey_init(username: str, options: dict) -> dict:
-    # get app id from base url
-    pattern = r"https://([0-9a-fA-F-]+)\.api\..*\.loginid\.io"
-    match = re.search(pattern, LOGINID_BASE_URL)
-
-    if match:
-        app_id = match.group(1)
-    else:
-        raise Exception("Invalid LoginID base URL")
-
+def generate_management_token(username: str) -> str:
     '''
     Grant call
     '''
@@ -160,6 +166,13 @@ def register_with_passkey_init(username: str, options: dict) -> dict:
         res_dict = json.loads(res)
 
     management_token = res_dict["token"]
+
+    return management_token
+
+
+def register_with_passkey_init(username: str, options: dict) -> dict:
+    app_id = get_app_id()
+    management_token = generate_management_token(username)
 
     '''
     Register Passkey Init
@@ -188,6 +201,50 @@ def register_with_passkey_init(username: str, options: dict) -> dict:
         res_dict = json.loads(res)
 
     return res_dict
+
+
+def authenticate_with_passkey_init(username: str, options: dict) -> dict:
+    app_id = get_app_id()
+
+    '''
+    Authenticate Passkey Init
+    '''
+    url = f"{LOGINID_BASE_URL}/fido2/v2/auth/init"
+    headers = {
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "app": {"id": app_id},
+        "deviceInfo": {},
+        "user": {"username": username, "usernameType": "email"}
+    }
+
+    if options:
+        deep_update(payload, clean_loginid_options(options))
+        if options.get("userAgent"):
+            headers["User-Agent"] = options["userAgent"]
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers)
+
+    with urllib.request.urlopen(req) as res:
+        res = res.read().decode("utf-8")
+        res_dict = json.loads(res)
+
+    return res_dict
+
+
+def get_app_id() -> str:
+    # get app id from base url
+    pattern = r"https://([0-9a-fA-F-]+)\.api\..*\.loginid\.io"
+    match = re.search(pattern, LOGINID_BASE_URL)
+
+    if match:
+        app_id = match.group(1)
+    else:
+        raise Exception("Invalid LoginID base URL")
+
+    return app_id
 
 
 def clean_loginid_options(options: dict) -> dict:
