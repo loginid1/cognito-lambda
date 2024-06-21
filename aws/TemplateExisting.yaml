@@ -46,7 +46,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
-      CodeUri: s3://cognito-loginid-dev/lambdas/nodejs/DefineAuthChallenge.zip
+      CodeUri: s3://cognito-loginid/lambdas/nodejs/DefineAuthChallenge.zip
       Handler: index.handler
       Runtime: nodejs20.x
       MemorySize: 1024
@@ -65,7 +65,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
-      CodeUri: s3://cognito-loginid-dev/lambdas/nodejs/CreateAuthChallenge.zip
+      CodeUri: s3://cognito-loginid/lambdas/nodejs/CreateAuthChallenge.zip
       Handler: index.handler
       Runtime: nodejs20.x
       MemorySize: 1024
@@ -90,7 +90,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
-      CodeUri: s3://cognito-loginid-dev/lambdas/nodejs/VerifyAuthChallenge.zip
+      CodeUri: s3://cognito-loginid/lambdas/nodejs/VerifyAuthChallenge.zip
       Handler: index.handler
       Runtime: nodejs20.x
       MemorySize: 1024
