@@ -1,17 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Resources:
-  PythonSDK:
-    Type: AWS::Lambda::LayerVersion
-    Properties:
-      Content:
-        S3Bucket: cognito-loginid
-        S3Key: python-sdk.zip
-      Description: Python layer with LoginID SDK compatible for linux
-      CompatibleRuntimes:
-      - python3.8
-      LayerName: PythonSDK
-
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -41,14 +30,25 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
+        - PolicyName: CognitoPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:UpdateUserPool
+                  - cognito-idp:UpdateUserPoolClient
+                  - cognito-idp:DescribeUserPool
+                  - cognito-idp:DescribeUserPoolClient
+                Resource: "*"
 
   DefineAuthChallenge:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
-      CodeUri: s3://cognito-loginid/lambdas/DefineAuthChallenge.zip
-      Handler: index.lambda_handler
-      Runtime: python3.8
+      CodeUri: s3://cognito-loginid-dev/lambdas/nodejs/DefineAuthChallenge.zip
+      Handler: index.handler
+      Runtime: nodejs20.x
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
@@ -65,15 +65,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
-      CodeUri: s3://cognito-loginid/lambdas/CreateAuthChallenge.zip
-      Handler: index.lambda_handler
-      Runtime: python3.8
+      CodeUri: s3://cognito-loginid-dev/lambdas/nodejs/CreateAuthChallenge.zip
+      Handler: index.handler
+      Runtime: nodejs20.x
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
       Role: !GetAtt LambdaExecutionRole.Arn
-      Layers:
-        - !Ref PythonSDK
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
@@ -92,15 +90,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
-      CodeUri: s3://cognito-loginid/lambdas/VerifyAuthChallenge.zip
-      Handler: index.lambda_handler
-      Runtime: python3.8
+      CodeUri: s3://cognito-loginid-dev/lambdas/nodejs/VerifyAuthChallenge.zip
+      Handler: index.handler
+      Runtime: nodejs20.x
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
       Role: !GetAtt LambdaExecutionRole.Arn
-      Layers:
-        - !Ref PythonSDK
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
@@ -135,6 +131,72 @@ Resources:
               Service:
                 - lambda.amazonaws.com
 
+  AttachLambdasToCognitoUserPool:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-AttachLambdasToCognitoUserPool
+      Handler: index.handler
+      Runtime: python3.9
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+
+          def handler(event, context):
+              print(event)
+              if event['RequestType'] == 'Delete':
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  return
+
+              user_pool_id = event['ResourceProperties']['UserPoolId']
+              define_auth_challenge_arn = event['ResourceProperties']['DefineAuthChallengeArn']
+              create_auth_challenge_arn = event['ResourceProperties']['CreateAuthChallengeArn']
+              verify_auth_challenge_arn = event['ResourceProperties']['VerifyAuthChallengeArn']
+
+              client = boto3.client('cognito-idp')
+
+              try:
+                  user_pool_details = client.describe_user_pool(UserPoolId=user_pool_id)
+                  auto_verified_attributes = user_pool_details['UserPool']['AutoVerifiedAttributes']
+
+                  user_pool_client_details = client.describe_user_pool_client(UserPoolId=user_pool_id, ClientId=event['ResourceProperties']['ClientId'])
+                  explicit_auth_flows = user_pool_client_details['UserPoolClient']['ExplicitAuthFlows']
+
+                  if 'ALLOW_CUSTOM_AUTH' not in explicit_auth_flows or 'CUSTOM_AUTH_FLOW_ONLY' not in explicit_auth_flows:
+                      explicit_auth_flows.append('ALLOW_CUSTOM_AUTH')
+                      client.update_user_pool_client(
+                          UserPoolId=user_pool_id,
+                          ClientId=event['ResourceProperties']['ClientId'],
+                          ExplicitAuthFlows=explicit_auth_flows
+                      )
+
+                  client.update_user_pool(
+                      UserPoolId=user_pool_id,
+                      LambdaConfig={
+                          'DefineAuthChallenge': define_auth_challenge_arn,
+                          'CreateAuthChallenge': create_auth_challenge_arn,
+                          'VerifyAuthChallengeResponse': verify_auth_challenge_arn
+                      },
+                      AutoVerifiedAttributes=auto_verified_attributes,
+                  )
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              except Exception as e:
+                  print(e)
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {})
+
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 300
+
+  AttachLambdasToCognitoUserPoolCustomResource:
+    Type: Custom::AttachLambdasToCognitoUserPool
+    Properties:
+      ServiceToken: !GetAtt AttachLambdasToCognitoUserPool.Arn
+      UserPoolId: !Ref CognitoUserPoolID
+      ClientId: !Ref CognitoClientID
+      DefineAuthChallengeArn: !GetAtt DefineAuthChallenge.Arn
+      CreateAuthChallengeArn: !GetAtt CreateAuthChallenge.Arn
+      VerifyAuthChallengeArn: !GetAtt VerifyAuthChallenge.Arn
+
 Outputs:
   DefineAuthChallengeArn:
     Value: !GetAtt DefineAuthChallenge.Arn
@@ -160,3 +222,6 @@ Parameters:
   CognitoUserPoolARN:
     Type: String
     Description: "The Cognito User Pool ARN to apply custom authentication with LoginID passkeys"
+  CognitoClientID:
+    Type: String
+    Description: "The Cognito User Pool Client ID to apply custom authentication with LoginID passkeys"
