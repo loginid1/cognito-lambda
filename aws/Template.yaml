@@ -11,9 +11,9 @@ Resources:
       DestBucket: !Ref LoginIDBucket
       SourceBucket: cognito-loginid
       Objects:
-        - lambdas/CreateAuthChallenge.zip
-        - lambdas/DefineAuthChallenge.zip
-        - lambdas/VerifyAuthChallenge.zip
+        - lambdas/nodejs/CreateAuthChallenge.zip
+        - lambdas/nodejs/DefineAuthChallenge.zip
+        - lambdas/nodejs/VerifyAuthChallenge.zip
         - python-sdk.zip
 
   CopyRole:
@@ -102,18 +102,6 @@ Resources:
               objects = {'Objects': [{'Key': o} for o in objects]}
               s3.delete_objects(Bucket=bucket, Delete=objects)
 
-  PythonSDK:
-    Type: AWS::Lambda::LayerVersion
-    DependsOn: CopyZips
-    Properties:
-      Content:
-        S3Bucket: !Ref LoginIDBucket
-        S3Key: python-sdk.zip
-      Description: Python layer with LoginID SDK compatible for linux
-      CompatibleRuntimes:
-      - python3.8
-      LayerName: PythonSDK
-
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -188,9 +176,9 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-DefineAuthChallenge
       CodeUri:
         Bucket: !Ref LoginIDBucket
-        Key: lambdas/DefineAuthChallenge.zip
-      Handler: index.lambda_handler
-      Runtime: python3.8
+        Key: lambdas/nodejs/DefineAuthChallenge.zip
+      Handler: index.handler
+      Runtime: nodejs20.x
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
@@ -210,15 +198,13 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-CreateAuthChallenge
       CodeUri:
         Bucket: !Ref LoginIDBucket
-        Key: lambdas/CreateAuthChallenge.zip
-      Handler: index.lambda_handler
-      Runtime: python3.8
+        Key: lambdas/nodejs/CreateAuthChallenge.zip
+      Handler: index.handler
+      Runtime: nodejs20.x
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
       Role: !GetAtt LambdaExecutionRole.Arn
-      Layers:
-        - !Ref PythonSDK
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
@@ -240,15 +226,13 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-VerifyAuthChallenge
       CodeUri:
         Bucket: !Ref LoginIDBucket
-        Key: lambdas/VerifyAuthChallenge.zip
-      Handler: index.lambda_handler
-      Runtime: python3.8
+        Key: lambdas/nodejs/VerifyAuthChallenge.zip
+      Handler: index.handler
+      Runtime: nodejs20.x
       MemorySize: 1024
       Timeout: 30
       Tracing: Active
       Role: !GetAtt LambdaExecutionRole.Arn
-      Layers:
-        - !Ref PythonSDK
       Environment:
         Variables:
           LOGINID_BASE_URL: !Ref LOGINIDBaseURL
