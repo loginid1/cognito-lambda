@@ -48,7 +48,7 @@ export const handler = async (event) => {
     const { challengeMetadata, challengeName, challengeResult } = sessionObj;
 
     // will be used as the first round of authentication to get provided authentication type
-    if (challengeMetadata === "AUTH_PARAMS") {
+    if (challengeMetadata === "AUTH_PARAMS" && !challengeResult) {
       // renew challenge
       response.issueTokens = false;
       response.failAuthentication = false;
