@@ -140,29 +140,9 @@ const registerWithPasskeyInit = async (username, options) => {
   return JSON.parse(data);
 };
 
-const authenticateWithPasskeyInit = async (username, options) => {
-  const appId = getLoginIdAppId();
-
-  const url = `${LOGINID_BASE_URL}/fido2/v2/auth/init`;
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.userAgent && { "User-Agent": options.userAgent }),
-  };
-  const payload = {
-    app: { id: appId },
-    deviceInfo: {},
-    user: { username: username, usernameType: "email" },
-  };
-
-  deepUpdate(payload, cleanLoginidOptions(options));
-
-  const data = await httpRequest(url, "POST", JSON.stringify(payload), headers);
-  return JSON.parse(data);
-};
-
 const getLoginIdAppId = () => {
-  const regex = /https:\/\/([0-9a-fA-F-]+)\.api\..*\.loginid\.io/;
-  const match = LOGINID_BASE_URL.match(regex);
+  const pattern = /https:\/\/([0-9a-fA-F-]+)\.api\.(.*\.)?loginid\.io/;
+  const match = LOGINID_BASE_URL.match(pattern);
 
   if (!match) {
     throw new Error("Invalid LoginID base URL");

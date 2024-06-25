@@ -31,7 +31,7 @@ const PasswordlessLogin = function ({
         const result = await isConditionalUIAvailable();
         if (!result) return;
 
-        const options = { abortSignal: abortController.signal };
+        const options = { abortController: abortController };
         await Loginid.signInWithPasskeyAutofill(options);
 
         const user = cognito.getCurrentUser();

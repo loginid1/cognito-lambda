@@ -90,7 +90,7 @@ const getKeyId = async () => {
 };
 
 const getLoginIdAppId = () => {
-  const pattern = /https:\/\/([0-9a-fA-F-]+)\.api\..*\.loginid\.io/;
+  const pattern = /https:\/\/([0-9a-fA-F-]+)\.api\.(.*\.)?loginid\.io/;
   const match = LOGINID_BASE_URL.match(pattern);
 
   if (match) {
