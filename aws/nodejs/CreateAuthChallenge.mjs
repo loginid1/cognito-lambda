@@ -64,20 +64,6 @@ export const handler = async (event) => {
       response.publicChallengeParameters = { public_key: publicKey };
       return event;
 
-    case "FIDO2_GET":
-      const optionsGet = JSON.parse(clientMetadata.options || "{}");
-      initRes = await authenticateWithPasskeyInit(username, optionsGet);
-      publicKey = JSON.stringify(initRes);
-
-      response.privateChallengeParameters = { public_key: publicKey };
-      response.publicChallengeParameters = { public_key: publicKey };
-      return event;
-
-    case "JWT_ACCESS":
-      response.privateChallengeParameters = { challenge: "ACCESS_JWT" };
-      response.publicChallengeParameters = { challenge: "ACCESS_JWT" };
-      return event;
-
     case "EMAIL_OTP":
       if (session.length === 1) {
         const otp = generateOtp();

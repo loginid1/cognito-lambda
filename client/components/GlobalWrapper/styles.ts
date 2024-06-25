@@ -9,9 +9,8 @@ export default createStyles(
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      background: `url(${page_background_image}) center/cover no-repeat, ${
-        page_background_color || theme.colors.gray[4]
-      }`,
+      background: `url(${page_background_image}) center/cover no-repeat, ${page_background_color || theme.colors.gray[4]
+        }`,
     },
     innerWrapper: {
       width: 550,

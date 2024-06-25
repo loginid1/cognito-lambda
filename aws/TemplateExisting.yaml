@@ -4,7 +4,7 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: LambdaExecutionRole
+      RoleName: !Sub ${AWS::StackName}-LambdaExecutionRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -29,6 +29,8 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
+                  - ses:SendEmail
+                  - ses:SendRawEmail
                 Resource: "*"
         - PolicyName: CognitoPolicy
           PolicyDocument:
@@ -143,7 +145,8 @@ Resources:
           import cfnresponse
 
           def handler(event, context):
-              print(event)
+              print("BEGIN lamdba attachment")
+              print("EVENT: " , event)
               if event['RequestType'] == 'Delete':
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
                   return
@@ -158,10 +161,28 @@ Resources:
               try:
                   user_pool_details = client.describe_user_pool(UserPoolId=user_pool_id)
                   auto_verified_attributes = user_pool_details['UserPool']['AutoVerifiedAttributes']
+                  print("DESCRIBE: " , user_pool_details) 
 
+                  existing_lambdaConfig = user_pool_details['UserPool']['LambdaConfig']
+                  
+                  if 'DefineAuthChallenge'  not in existing_lambdaConfig:
+                    existing_lambdaConfig['DefineAuthChallenge'] = define_auth_challenge_arn
+                  else:
+                    print("DefineAuthChallenge already existed!")
+
+                  if 'CreateAuthChallenge'  not in existing_lambdaConfig:
+                    existing_lambdaConfig['CreateAuthChallenge'] = create_auth_challenge_arn
+                  else:
+                    print("CreateAuthChallenge already existed!")
+                  
+                  if 'VerifyAuthChallengeResponse'  not in existing_lambdaConfig:
+                    existing_lambdaConfig['VerifyAuthChallengeResponse'] = verify_auth_challenge_arn
+                  else:
+                    print("VerifyAuthChallengeResponse already existed!")
+
+                  print("CONFIG: " , existing_lambdaConfig)
                   user_pool_client_details = client.describe_user_pool_client(UserPoolId=user_pool_id, ClientId=event['ResourceProperties']['ClientId'])
                   explicit_auth_flows = user_pool_client_details['UserPoolClient']['ExplicitAuthFlows']
-
                   if 'ALLOW_CUSTOM_AUTH' not in explicit_auth_flows or 'CUSTOM_AUTH_FLOW_ONLY' not in explicit_auth_flows:
                       explicit_auth_flows.append('ALLOW_CUSTOM_AUTH')
                       client.update_user_pool_client(
@@ -172,16 +193,13 @@ Resources:
 
                   client.update_user_pool(
                       UserPoolId=user_pool_id,
-                      LambdaConfig={
-                          'DefineAuthChallenge': define_auth_challenge_arn,
-                          'CreateAuthChallenge': create_auth_challenge_arn,
-                          'VerifyAuthChallengeResponse': verify_auth_challenge_arn
-                      },
+                      LambdaConfig=existing_lambdaConfig,
                       AutoVerifiedAttributes=auto_verified_attributes,
                   )
+                  print("END lamdba attachment")
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
               except Exception as e:
-                  print(e)
+                  print("ERROR: ", e)
                   cfnresponse.send(event, context, cfnresponse.FAILED, {})
 
       Role: !GetAtt LambdaExecutionRole.Arn
