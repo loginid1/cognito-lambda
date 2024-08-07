@@ -226,7 +226,7 @@ Resources:
     Properties:
       Name: !Sub ${AWS::StackName}-loginid-keys
       Description: LoginID keys
-      SecretString: !Ref LOGINIDAPIKeyID
+      SecretString: !Ref LOGINIDAPIKey
 
   LoginIDKeysSecretPolicy:
     Type: AWS::SecretsManager::ResourcePolicy
@@ -336,10 +336,10 @@ Parameters:
   LOGINIDBaseURL:
     Type: String
     Description: "BaseURL required for LoginID service"
-  LOGINIDAPIKeyID:
+  LOGINIDAPIKey:
     Type: String
     NoEcho: true
-    Description: "API key ID required for LoginID service"
+    Description: "API key required for LoginID service"
   SESSenderEmail:
     Type: String
     Description: "A verified SES sender email able to send OTP's"

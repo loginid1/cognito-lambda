@@ -104,7 +104,7 @@ const generateManagementToken = async (username) => {
   const url = `${LOGINID_BASE_URL}/fido2/v2/mgmt/grant`;
   const headers = { "Content-Type": "application/json" };
   const payload = JSON.stringify({
-    grants: ["passkey:read", "passkey:write"],
+    grants: ["passkey:read", "passkey:write", "reg:write"],
     username: username,
   });
 
